@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://github.com/superstarryeyes/lue/blob/main/images/lue_logo.png?raw=true" alt="Lue Logo" width="70%" />
+<img src="https://github.com/superstarryeyes/lue/blob/main/images/logo.png?raw=true" alt="Lue Logo" width="70%" />
 
 ### Lue - Terminal eBook Reader with Text-to-Speech
 
