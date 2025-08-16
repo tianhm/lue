@@ -1,0 +1,7 @@
+include README.md
+include LICENSE
+include requirements.txt
+include DEVELOPER.md
+include VOICES.md
+recursive-include lue *.py
+recursive-include lue *.typed
