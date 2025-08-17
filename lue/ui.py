@@ -5,7 +5,7 @@ import re
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
-from . import config
+from . import config, content_parser
 
 # ================================
 # CENTRALIZED UI CONFIGURATION
@@ -144,7 +144,7 @@ def update_document_layout(reader):
             
             reader.paragraph_line_ranges[(chap_idx, para_idx)] = (paragraph_start_line, paragraph_end_line)
             
-            sentences = re.split(r'(?<=[.!?])\s+', paragraph)
+            sentences = content_parser.split_into_sentences(paragraph)
             current_char_pos = 0
             for sent_idx, sentence in enumerate(sentences):
                 sentence_start = current_char_pos
@@ -222,7 +222,7 @@ def get_visible_content(reader):
     if current_paragraph_key in reader.paragraph_line_ranges:
         para_start, para_end = reader.paragraph_line_ranges[current_paragraph_key]
         paragraph = reader.chapters[reader.ui_chapter_idx][reader.ui_paragraph_idx]
-        sentences = re.split(r'(?<=[.!?])\s+', paragraph)
+        sentences = content_parser.split_into_sentences(paragraph)
         highlighted_text = Text(justify="left", no_wrap=False)
         
         for sent_idx, sentence in enumerate(sentences):

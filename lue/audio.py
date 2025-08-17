@@ -3,7 +3,22 @@ import os
 import re
 import subprocess
 import logging
-from . import config
+from . import config, content_parser
+
+# This pattern is used to both clean text for TTS and detect sentence fragments.
+ABBREVIATION_PATTERN = r'\b(Mr|Mrs|Ms|Dr|Prof|Rev|Hon|Jr|Sr|Cpl|Sgt|Gen|Col|Capt|Lt|Pvt|vs|viz|Co|Inc|Ltd|Corp|St|Ave|Blvd)\.'
+INITIAL_PATTERN = r'\b([A-Z])\.\s+(?=[A-Z][a-z]|\b[A-Z]\b)'
+MID_SENTENCE_INITIAL_PATTERN = r'\b([A-Z])\.\s+(?=[a-z])'
+
+def clean_tts_text(text: str) -> str:
+    """
+    Removes periods from specific English abbreviations and single initials
+    to prevent unnatural pauses in TTS engines.
+    """
+    text = re.sub(ABBREVIATION_PATTERN, r'\1', text)
+    text = re.sub(INITIAL_PATTERN, r'\1 ', text)
+    text = re.sub(MID_SENTENCE_INITIAL_PATTERN, r'\1 ', text)
+    return text
 
 async def stop_and_clear_audio(reader):
     """Stop audio playback and clear the audio queue."""
@@ -109,7 +124,7 @@ async def _producer_loop(reader):
                 continue
             try:
                 c, p, s = producer_pos
-                sentences = re.split(r'(?<=[.!?])\s+', reader.chapters[c][p])
+                sentences = content_parser.split_into_sentences(reader.chapters[c][p])
                 text = sentences[s]
             except IndexError: break
             if not text or not text.strip():
@@ -118,26 +133,42 @@ async def _producer_loop(reader):
                 producer_pos = next_pos
                 continue
 
+            # --- Start of fragment merging logic ---
+            merged = False
+            # Heuristic: if a "sentence" is just an abbreviation or initial, it's a fragment.
+            # We check if the entire text matches common abbreviation patterns.
+            is_abbrev_fragment = re.fullmatch(ABBREVIATION_PATTERN, text.strip())
+            is_initial_fragment = re.fullmatch(r'[A-Z]\.', text.strip())
+
+            if (is_abbrev_fragment or is_initial_fragment) and s + 1 < len(sentences):
+                text += " " + sentences[s+1]
+                merged = True
+            # --- End of fragment merging logic ---
+
             output_format = reader.tts_model.output_format
             output_filename = f"{config.AUDIO_BUFFERS[buffer_index]}.{output_format}"
             
             try:
                 if not reader.running: break
                 
-                # Check if output file already exists and remove it
                 for attempt in range(3):
                     try:
-                        if os.path.exists(output_filename):
-                            os.remove(output_filename)
+                        if os.path.exists(output_filename): os.remove(output_filename)
                         break
                     except OSError:
-                        if attempt < 2:
-                            await asyncio.sleep(0.05)
+                        if attempt < 2: await asyncio.sleep(0.05)
                 
-                await reader.tts_model.generate_audio(text, output_filename)
+                cleaned_text = clean_tts_text(text)
+                await reader.tts_model.generate_audio(cleaned_text, output_filename)
                 if not reader.running: break
                 await asyncio.wait_for(reader.audio_queue.put((output_filename, *producer_pos)), timeout=1.0)
+                
                 next_pos = reader._advance_position(producer_pos, wrap=False)
+                if merged:
+                    # If we merged two sentences, we must advance the position an extra time.
+                    if next_pos:
+                        next_pos = reader._advance_position(next_pos, wrap=False)
+
                 if not next_pos: break
                 producer_pos = next_pos
                 buffer_index = (buffer_index + 1) % len(config.AUDIO_BUFFERS)
@@ -160,7 +191,6 @@ async def _player_loop(reader):
                 item = await asyncio.wait_for(reader.audio_queue.get(), timeout=1.0)
                 if item is None:
                     reader.audio_queue.task_done()
-                    # Wait for remaining playback tasks to finish before setting the event
                     if reader.active_playback_tasks:
                         await asyncio.gather(*reader.active_playback_tasks, return_exceptions=True)
                     reader.playback_finished_event.set()
@@ -189,50 +219,37 @@ async def _player_loop(reader):
                     task = asyncio.current_task()
                     try:
                         await proc.wait()
-                    except Exception:
-                        pass
+                    except Exception: pass
                     finally:
                         try:
-                            if proc in reader.playback_processes:
-                                reader.playback_processes.remove(proc)
-                        except ValueError:
-                            pass
+                            if proc in reader.playback_processes: reader.playback_processes.remove(proc)
+                        except ValueError: pass
                         for attempt in range(3):
                             try:
-                                if os.path.exists(file):
-                                    os.remove(file)
+                                if os.path.exists(file): os.remove(file)
                                 break
                             except OSError:
-                                if attempt < 2:
-                                    await asyncio.sleep(0.05)
+                                if attempt < 2: await asyncio.sleep(0.05)
                         if task in reader.active_playback_tasks:
                             reader.active_playback_tasks.remove(task)
 
                 playback_task = asyncio.create_task(await_and_remove(process, audio_file))
                 reader.active_playback_tasks.append(playback_task)
                 
-                # Use TTS-specific overlap if available, otherwise use default
                 overlap_seconds = config.OVERLAP_SECONDS
                 if reader.tts_model and hasattr(reader.tts_model, 'get_overlap_seconds'):
                     tts_overlap = reader.tts_model.get_overlap_seconds()
-                    if tts_overlap is not None:
-                        overlap_seconds = tts_overlap
+                    if tts_overlap is not None: overlap_seconds = tts_overlap
                 
                 await asyncio.sleep(max(0.1, duration - overlap_seconds))
                 reader.audio_queue.task_done()
             except asyncio.TimeoutError:
-                if not reader.running:
-                    break
+                if not reader.running: break
                 continue
-            except asyncio.CancelledError:
-                break
-    except asyncio.CancelledError:
-        pass
+            except asyncio.CancelledError: break
+    except asyncio.CancelledError: pass
     finally:
-        # Clean up any remaining processes on exit
         for process in reader.playback_processes.copy():
             try:
-                if process.returncode is None:
-                    process.terminate()
-            except (ProcessLookupError, AttributeError):
-                pass
+                if process.returncode is None: process.terminate()
+            except (ProcessLookupError, AttributeError): pass

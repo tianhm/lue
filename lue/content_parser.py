@@ -16,6 +16,49 @@ from html import unescape
 from urllib.parse import unquote
 
 
+def split_into_sentences(paragraph: str) -> list[str]:
+    """
+    Splits a paragraph into sentences, intelligently handling common abbreviations and initials.
+    """
+    # A list of common English abbreviations that can be followed by a period.
+    abbreviations = [
+        "Mr", "Mrs", "Ms", "Dr", "Prof", "Rev", "Hon", "Jr", "Sr",
+        "Cpl", "Sgt", "Gen", "Col", "Capt", "Lt", "Pvt",
+        "vs", "viz", "etc", "eg", "ie",
+        "Co", "Inc", "Ltd", "Corp",
+        "St", "Ave", "Blvd"
+    ]
+    
+    # Create a regex pattern for these abbreviations.
+    abbrev_pattern = r"\b(" + "|".join(abbreviations) + r")\."
+    
+    # Use a unique placeholder that is highly unlikely to be in the original text.
+    placeholder = "<LUE_PERIOD>"
+    
+    # 1. Protect periods in abbreviations by replacing them with the placeholder.
+    paragraph = re.sub(abbrev_pattern, r"\1" + placeholder, paragraph, flags=re.IGNORECASE)
+    
+    # 2. Protect periods in initials (e.g., "J. F. Kennedy").
+    # This looks for a single capital letter, a period, a space, and another capital letter.
+    initial_pattern = r"\b([A-Z])\.(?=\s[A-Z])"
+    paragraph = re.sub(initial_pattern, r"\1" + placeholder, paragraph)
+    
+    # 3. Split the text into sentences using the remaining punctuation.
+    # The lookbehind `(?<=[.!?])` keeps the delimiter with the sentence.
+    sentences = re.split(r'(?<=[.!?])\s+', paragraph)
+    
+    # 4. Restore the periods and clean up the results.
+    restored_sentences = []
+    for sentence in sentences:
+        if sentence:
+            restored = sentence.replace(placeholder, ".").strip()
+            if restored:
+                restored_sentences.append(restored)
+                
+    # If splitting resulted in an empty list, return the original paragraph as a single sentence.
+    return restored_sentences if restored_sentences else [paragraph.strip()]
+
+
 def clean_text_for_tts(text):
     """
     Global text cleaning function to make content more TTS-friendly.
@@ -47,14 +90,14 @@ def clean_text_for_tts(text):
     text = re.sub(r'[#]{4,}', '', text)                # Remove #### but keep ### and less
     text = re.sub(r'[+]{3,}', '', text)                # Remove +++ 
     text = re.sub(r'[|]{3,}', '', text)                # Remove |||
-    text = re.sub(r'[\\]{3,}', '', text)               # Remove \\\
+    text = re.sub(r'[\\]{3,}', '', text)               # Remove \
     text = re.sub(r'[/]{3,}', '', text)                # Remove ///
     
     # 3. Clean up problematic Unicode characters that TTS struggles with
     # Keep common ones like bullet points, quotes, dashes
     unicode_replacements = {
         # Various quote marks -> standard quotes
-        '"': '"', '"': '"', ''': "'", ''': "'",
+        '“': '"', '”': '"', '‘': "'", '’': "'",
         '„': '"', '‚': "'", '‹': "'", '›': "'",
         
         # Various dashes -> standard dash
@@ -83,7 +126,7 @@ def clean_text_for_tts(text):
     
     # 4. Remove other problematic Unicode characters (keep basic Latin, common punctuation, and bullet)
     # This regex keeps: letters, numbers, basic punctuation, spaces, and bullet points
-    text = re.sub(r'[^\w\s.,!?;:()\[\]{}"\'-•…\n]', '', text)
+    text = re.sub(r'[^\w\s.,!?;:()[\]{}"\'-•…\n]', '', text)
     
     # 5. Handle ellipsis properly (before whitespace cleanup to avoid interference)
     text = re.sub(r'\.{4,}', '...', text)  # Multiple dots -> ellipsis
@@ -103,10 +146,10 @@ def clean_text_for_tts(text):
     
     # Remove markdown links but keep the text
     text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)  # [text](url) -> text
-    text = re.sub(r'\[([^\]]+)\]\[[^\]]*\]', r'\1', text)  # [text][ref] -> text
+    text = re.sub(r'\[([^\]]+)\]\[[^\ ]*\]', r'\1', text)  # [text][ref] -> text
     
     # Remove reference link definitions
-    text = re.sub(r'^\s*\[[^\]]+\]:\s*\S+.*$', '', text, flags=re.MULTILINE)  # [ref]: url -> (remove)
+    text = re.sub(r'^\s*\[[^\ ]+\]:\s*\S+.*$', '', text, flags=re.MULTILINE)  # [ref]: url -> (remove)
     
     # Remove markdown headers (# symbols)
     text = re.sub(r'^#{1,6}\s+', '', text, flags=re.MULTILINE)  # # Header -> Header
@@ -674,7 +717,7 @@ def _extract_content_pdf(file_path, console):
                 if cleaned_para and len(cleaned_para) > 10:
                     all_paragraphs.append(cleaned_para)
 
-    doc.close()
+    doc.close() 
     
     chapters = []
     current_chapter = []
@@ -897,14 +940,14 @@ def _parse_raw_markdown(md_content):
                 result.append("")
                 result.append(header_text)
                 result.append("")
-        elif line.startswith(('- ', '* ', '+ ')) or re.match(r'^\d+\. ', line):
+        elif line.startswith(('- ', '* ', '+ ')) or re.match(r'^\d+\.\s', line):
             # List items
             if line.startswith(('- ', '* ', '+ ')):
                 list_text = line[2:].strip()
                 result.append(f"• {list_text}")
             else:
                 # Numbered list
-                list_text = re.sub(r'^\d+\. ', '', line).strip()
+                list_text = re.sub(r'^\d+\.\s', '', line).strip()
                 result.append(f"• {list_text}")
         elif re.match(r'^\s+(-|\*|\+|\d+\.)\s+', line):
             # Indented list items (should be cleaned, not treated as code)
@@ -980,4 +1023,3 @@ def _extract_content_html(file_path, console):
     except Exception as e:
         console.print(f"[bold red]Error: Failed to parse HTML file: {e}[/bold red]")
         return []
-

@@ -59,7 +59,7 @@ class Lue:
         self.paragraph_line_ranges = {}
         
         self.total_sentences = sum(
-            len(re.split(r'(?<=[.!?])\s+', paragraph)) 
+            len(content_parser.split_into_sentences(paragraph)) 
             for chapter in self.chapters 
             for paragraph in chapter
         )
@@ -268,7 +268,7 @@ class Lue:
             if (chap_idx, para_idx) in self.paragraph_line_ranges:
                 para_start, _ = self.paragraph_line_ranges[(chap_idx, para_idx)]
                 paragraph = self.chapters[chap_idx][para_idx]
-                sentences = re.split(r'(?<=[.!?])\s+', paragraph)
+                sentences = content_parser.split_into_sentences(paragraph)
                 sentence_positions = []
                 current_char = 0
                 for sent_idx, sentence in enumerate(sentences):
@@ -516,7 +516,7 @@ class Lue:
         else: s += 1
         while c < len(self.chapters):
             if p < len(self.chapters[c]):
-                if s < len(re.split(r'(?<=[.!?])\s+', self.chapters[c][p])):
+                if s < len(content_parser.split_into_sentences(self.chapters[c][p])):
                     if mode == 'paragraph': s = 0
                     return c, p, s
                 p, s = p + 1, 0
@@ -540,22 +540,22 @@ class Lue:
                 
                 p -= 1
                 if p >= 0:
-                    s = len(re.split(r'(?<=[.!?])\s+', self.chapters[c][p])) - 1
+                    s = len(content_parser.split_into_sentences(self.chapters[c][p])) - 1
                 else:
                     c -= 1
                     if c >= 0:
                         p = len(self.chapters[c]) - 1
-                        s = len(re.split(r'(?<=[.!?])\s+', self.chapters[c][p])) - 1
+                        s = len(content_parser.split_into_sentences(self.chapters[c][p])) - 1
             else:
                 c -= 1
                 if c >= 0:
                     p = len(self.chapters[c]) - 1
-                    s = len(re.split(r'(?<=[.!?])\s+', self.chapters[c][p])) - 1
+                    s = len(content_parser.split_into_sentences(self.chapters[c][p])) - 1
 
         # If we've rewound past the beginning, loop to the end
         c = len(self.chapters) - 1
         p = len(self.chapters[c]) - 1
-        s = len(re.split(r'(?<=[.!?])\s+', self.chapters[c][p])) - 1
+        s = len(content_parser.split_into_sentences(self.chapters[c][p])) - 1
         return c, p, s
 
     def _get_topmost_visible_sentence(self):
@@ -584,9 +584,9 @@ class Lue:
     
     def _calculate_progress_percentage(self):
         if self.total_sentences == 0: return 100.0
-        sentences_read = sum(len(re.split(r'(?<=[.!?])\s+', p)) for i in range(self.chapter_idx) for p in self.chapters[i])
+        sentences_read = sum(len(content_parser.split_into_sentences(p)) for i in range(self.chapter_idx) for p in self.chapters[i])
         if self.chapter_idx < len(self.chapters):
-            sentences_read += sum(len(re.split(r'(?<=[.!?])\s+', self.chapters[self.chapter_idx][i])) for i in range(self.paragraph_idx))
+            sentences_read += sum(len(content_parser.split_into_sentences(self.chapters[self.chapter_idx][i])) for i in range(self.paragraph_idx))
             sentences_read += self.sentence_idx
         return (sentences_read / self.total_sentences) * 100
 
