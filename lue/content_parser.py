@@ -51,12 +51,12 @@ def split_into_sentences(paragraph: str) -> list[str]:
     restored_sentences = []
     for sentence in sentences:
         if sentence:
-            restored = sentence.replace(placeholder, ".").strip()
+            restored = sentence.replace(placeholder, ".")
             if restored:
                 restored_sentences.append(restored)
                 
     # If splitting resulted in an empty list, return the original paragraph as a single sentence.
-    return restored_sentences if restored_sentences else [paragraph.strip()]
+    return restored_sentences if restored_sentences else [paragraph]
 
 
 def clean_text_for_tts(text):

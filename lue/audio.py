@@ -7,8 +7,8 @@ from . import config, content_parser
 
 # This pattern is used to both clean text for TTS and detect sentence fragments.
 ABBREVIATION_PATTERN = r'\b(Mr|Mrs|Ms|Dr|Prof|Rev|Hon|Jr|Sr|Cpl|Sgt|Gen|Col|Capt|Lt|Pvt|vs|viz|Co|Inc|Ltd|Corp|St|Ave|Blvd)\.'
-INITIAL_PATTERN = r'\b([A-Z])\.\s+(?=[A-Z][a-z]|\b[A-Z]\b)'
-MID_SENTENCE_INITIAL_PATTERN = r'\b([A-Z])\.\s+(?=[a-z])'
+INITIAL_PATTERN = r'\b([A-Z])\.(?=\s[A-Z])'
+
 
 def clean_tts_text(text: str) -> str:
     """
@@ -17,7 +17,6 @@ def clean_tts_text(text: str) -> str:
     """
     text = re.sub(ABBREVIATION_PATTERN, r'\1', text)
     text = re.sub(INITIAL_PATTERN, r'\1 ', text)
-    text = re.sub(MID_SENTENCE_INITIAL_PATTERN, r'\1 ', text)
     return text
 
 async def stop_and_clear_audio(reader):
@@ -135,12 +134,11 @@ async def _producer_loop(reader):
 
             # --- Start of fragment merging logic ---
             merged = False
-            # Heuristic: if a "sentence" is just an abbreviation or initial, it's a fragment.
+            # Heuristic: if a "sentence" is just an abbreviation, it might be a fragment.
             # We check if the entire text matches common abbreviation patterns.
             is_abbrev_fragment = re.fullmatch(ABBREVIATION_PATTERN, text.strip())
-            is_initial_fragment = re.fullmatch(r'[A-Z]\.', text.strip())
 
-            if (is_abbrev_fragment or is_initial_fragment) and s + 1 < len(sentences):
+            if is_abbrev_fragment and s + 1 < len(sentences):
                 text += " " + sentences[s+1]
                 merged = True
             # --- End of fragment merging logic ---
