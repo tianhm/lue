@@ -303,6 +303,21 @@ class Lue:
         
         return (clicked_line, content_x)
 
+    def _is_click_on_text(self, click_x, click_y):
+        """Check if click is on the text area."""
+        width, height = ui.get_terminal_size()
+        
+        # The text area is within the panel.
+        # Based on _find_sentence_at_click, content starts at y=3 and x=5.
+        text_area_top = 3
+        text_area_bottom = height - 2 # subtitle and border
+        
+        text_area_left = 5
+        text_area_right = width - 5
+        
+        return (text_area_left <= click_x <= text_area_right and
+                text_area_top <= click_y <= text_area_bottom)
+
     def _is_click_on_progress_bar(self, click_x, click_y):
         """Check if click is on the progress bar area."""
         width, height = ui.get_terminal_size()

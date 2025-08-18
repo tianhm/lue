@@ -40,6 +40,9 @@ def process_input(reader):
                                                 if reader._handle_progress_bar_click(x_pos, y_pos):
                                                     return
                                             
+                                            if not reader._is_click_on_text(x_pos, y_pos):
+                                                return
+
                                             # Cancel any pending restart task before killing audio
                                             if hasattr(reader, 'pending_restart_task') and reader.pending_restart_task and not reader.pending_restart_task.done():
                                                 reader.pending_restart_task.cancel()
