@@ -142,6 +142,9 @@ lue --voice "en-US-AriaNeural" path/to/your/book.epub
 # Specify a language code if needed
 lue --lang a path/to/your/book.epub
 
+# Seconds of overlap between sentences
+lue --over 0.2 path/to/your/book.epub
+
 # Enable PDF cleaning filter (removes page numbers, headers and footnotes)
 lue --filter path/to/your/book.pdf
 

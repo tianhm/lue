@@ -44,13 +44,27 @@ async def main():
     available_tts = tts_manager.get_available_tts_names()
     default_tts = get_default_tts_model_name(available_tts)
 
-    parser = argparse.ArgumentParser(description="A terminal-based eBook reader with TTS.")
+    parser = argparse.ArgumentParser(
+        description="A terminal-based eBook reader with TTS",
+        add_help=False  # Disable automatic help to add custom one
+    )
+    
+    parser.add_argument(
+        '-h', '--help',
+        action='help',
+        help='Show this help message and exit'
+    )
+    
     parser.add_argument("file_path", help="Path to the eBook file (.epub, .pdf, .txt, etc.)")
     parser.add_argument(
         "-f",
         "--filter",
         action="store_true",
-        help="Enable PDF text cleaning filters.",
+        help="Enable PDF text cleaning filters",
+    )
+    
+    parser.add_argument(
+        "-o", "--over", type=float, help="Seconds of overlap between sentences"
     )
     
     if available_tts:
@@ -64,14 +78,17 @@ async def main():
         parser.add_argument(
             "-v",
             "--voice",
-            help="Specify the voice for the TTS model.",
+            help="Specify the voice for the TTS model",
         )
         parser.add_argument(
             "-l",
             "--lang",
-            help="Specify the language for the TTS model.",
+            help="Specify the language for the TTS model",
         )
     args = parser.parse_args()
+
+    if args.over is not None:
+        config.OVERLAP_SECONDS = args.over
 
     if args.filter:
         config.PDF_FILTERS_ENABLED = True
@@ -97,7 +114,7 @@ async def main():
         lang = args.lang if hasattr(args, 'lang') else None
         tts_instance = tts_manager.create_model(args.tts, console, voice=voice, lang=lang)
 
-    reader = Lue(args.file_path, tts_model=tts_instance)
+    reader = Lue(args.file_path, tts_model=tts_instance, overlap=args.over)
         
     # Hide cursor, enable mouse tracking
     sys.stdout.write('\033[?1000h\033[?1006h\033[?25l')

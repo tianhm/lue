@@ -12,14 +12,12 @@ TTS_VOICES = {
     "kokoro": "af_heart",
 }
 
-
-
 # Language codes for TTS models that require them
 TTS_LANGUAGE_CODES = {
     "kokoro": "a",  # a=English, e=Spanish, j=Japanese, etc.
 }
 
-# TTS model-specific overlap settings (overrides default OVERLAP_SECONDS if specified)
+# TTS model-specific seconds of overlap between sentences (overrides default OVERLAP_SECONDS if specified)
 TTS_OVERLAP_SECONDS = {
     "kokoro": 0.6,
 }
@@ -29,7 +27,7 @@ AUDIO_DATA_DIR = user_cache_dir("lue")
 os.makedirs(AUDIO_DATA_DIR, exist_ok=True)
 AUDIO_BUFFERS = [os.path.join(AUDIO_DATA_DIR, f"buffer_{i}") for i in range(6)]
 MAX_QUEUE_SIZE = 4
-OVERLAP_SECONDS = 0.5
+OVERLAP_SECONDS = 0.5 # Seconds of overlap between sentences
 
 # Progress tracking settings
 PROGRESS_FILE_DIR = user_data_dir("lue")

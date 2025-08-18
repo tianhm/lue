@@ -13,12 +13,13 @@ from . import config, content_parser, progress_manager, audio, ui, input_handler
 from .tts.base import TTSBase
 
 class Lue:
-    def __init__(self, file_path, tts_model: TTSBase | None):
+    def __init__(self, file_path, tts_model: TTSBase | None, overlap: float | None = None):
         self.console = Console()
         self.loop = None
         self.file_path = file_path
         self.book_title = os.path.splitext(os.path.basename(file_path))[0]
         self.progress_file = progress_manager.get_progress_file_path(self.book_title)
+        self.overlap_override = overlap
         
         self._initialize_state()
         self._initialize_tts(tts_model)

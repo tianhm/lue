@@ -234,10 +234,13 @@ async def _player_loop(reader):
                 playback_task = asyncio.create_task(await_and_remove(process, audio_file))
                 reader.active_playback_tasks.append(playback_task)
                 
-                overlap_seconds = config.OVERLAP_SECONDS
-                if reader.tts_model and hasattr(reader.tts_model, 'get_overlap_seconds'):
-                    tts_overlap = reader.tts_model.get_overlap_seconds()
-                    if tts_overlap is not None: overlap_seconds = tts_overlap
+                if reader.overlap_override is not None:
+                    overlap_seconds = reader.overlap_override
+                else:
+                    overlap_seconds = config.OVERLAP_SECONDS
+                    if reader.tts_model and hasattr(reader.tts_model, 'get_overlap_seconds'):
+                        tts_overlap = reader.tts_model.get_overlap_seconds()
+                        if tts_overlap is not None: overlap_seconds = tts_overlap
                 
                 await asyncio.sleep(max(0.1, duration - overlap_seconds))
                 reader.audio_queue.task_done()
