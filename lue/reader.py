@@ -636,7 +636,8 @@ class Lue:
             self.scroll_offset, 
             not self.is_paused, 
             self.auto_scroll_enabled,
-            manual_scroll_anchor=manual_scroll_anchor
+            manual_scroll_anchor=manual_scroll_anchor,
+            original_file_path=self.file_path
         )
 
     def _scroll_to_position_immediate(self, chapter_idx, paragraph_idx, sentence_idx):
@@ -652,7 +653,7 @@ class Lue:
         self.scroll_offset = self.target_scroll_offset = max(0, self.scroll_offset - 1)
         if self.smooth_scroll_task and not self.smooth_scroll_task.done(): self.smooth_scroll_task.cancel()
         self.chapter_idx, self.paragraph_idx, self.sentence_idx = self.ui_chapter_idx, self.ui_paragraph_idx, self.ui_sentence_idx
-        progress_manager.save_extended_progress(self.progress_file, self.chapter_idx, self.paragraph_idx, self.sentence_idx, self.scroll_offset, not self.is_paused, self.auto_scroll_enabled)
+        progress_manager.save_extended_progress(self.progress_file, self.chapter_idx, self.paragraph_idx, self.sentence_idx, self.scroll_offset, not self.is_paused, self.auto_scroll_enabled, original_file_path=self.file_path)
 
     def _handle_scroll_down_immediate(self):
         self.auto_scroll_enabled = False
@@ -660,7 +661,7 @@ class Lue:
         self.scroll_offset = self.target_scroll_offset = min(max_scroll, self.scroll_offset + 1)
         if self.smooth_scroll_task and not self.smooth_scroll_task.done(): self.smooth_scroll_task.cancel()
         self.chapter_idx, self.paragraph_idx, self.sentence_idx = self.ui_chapter_idx, self.ui_paragraph_idx, self.ui_sentence_idx
-        progress_manager.save_extended_progress(self.progress_file, self.chapter_idx, self.paragraph_idx, self.sentence_idx, self.scroll_offset, not self.is_paused, self.auto_scroll_enabled)
+        progress_manager.save_extended_progress(self.progress_file, self.chapter_idx, self.paragraph_idx, self.sentence_idx, self.scroll_offset, not self.is_paused, self.auto_scroll_enabled, original_file_path=self.file_path)
 
     def _handle_navigation_immediate(self, cmd):
         current_pos = (self.chapter_idx, self.paragraph_idx, self.sentence_idx)

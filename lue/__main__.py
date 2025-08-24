@@ -12,7 +12,7 @@ import platformdirs
 import logging
 from rich.console import Console
 from .reader import Lue
-from . import config
+from . import config, progress_manager
 from .tts_manager import TTSManager, get_default_tts_model_name
 
 def setup_logging():
@@ -55,7 +55,7 @@ async def main():
         help='Show this help message and exit'
     )
     
-    parser.add_argument("file_path", help="Path to the eBook file (.epub, .pdf, .txt, etc.)")
+    parser.add_argument("file_path", nargs='?', help="Path to the eBook file (.epub, .pdf, .txt, etc.). If not provided, opens the last book you were reading.")
     parser.add_argument(
         "-f",
         "--filter",
@@ -87,6 +87,24 @@ async def main():
         )
     args = parser.parse_args()
 
+    # Initialize console early for printing messages
+    console = Console()
+
+    # Handle the case when no file is provided - try to open the last book
+    if not args.file_path:
+        last_book_path = progress_manager.find_most_recent_book()
+        if last_book_path:
+            console.print(f"[green]Opening last book: {os.path.basename(last_book_path)}[/green]")
+            args.file_path = last_book_path
+        else:
+            console.print("[red]No file specified and no previous books found.[/red]")
+            console.print("Please provide a file path as an argument.")
+            parser.print_help()
+            sys.exit(1)
+    else:
+        # Convert relative path to absolute path for consistency
+        args.file_path = os.path.abspath(args.file_path)
+
     if args.over is not None:
         config.OVERLAP_SECONDS = args.over
 
@@ -95,8 +113,7 @@ async def main():
 
     setup_environment()
     setup_logging()
-    
-    console = Console()
+
 
     for tool in ['ffprobe', 'ffplay', 'ffmpeg']:
         try:

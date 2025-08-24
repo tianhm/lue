@@ -3,6 +3,7 @@
 import os
 import json
 import re
+import glob
 from . import config
 
 
@@ -89,7 +90,7 @@ def save_progress(progress_file, chapter_idx, paragraph_idx, sentence_idx):
         json.dump(progress, f, indent=2)
 
 def save_extended_progress(progress_file, chapter_idx, paragraph_idx, sentence_idx, 
-                          scroll_offset, tts_enabled, auto_scroll_enabled, manual_scroll_anchor=None):
+                          scroll_offset, tts_enabled, auto_scroll_enabled, manual_scroll_anchor=None, original_file_path=None):
     """
     Save extended reading progress including UI state.
     
@@ -102,6 +103,7 @@ def save_extended_progress(progress_file, chapter_idx, paragraph_idx, sentence_i
         tts_enabled: Whether TTS is enabled
         auto_scroll_enabled: Whether auto-scroll is enabled
         manual_scroll_anchor: Manual scroll anchor position (optional)
+        original_file_path: Original path to the eBook file (optional)
     """
     progress = {
         "c": chapter_idx,
@@ -113,6 +115,8 @@ def save_extended_progress(progress_file, chapter_idx, paragraph_idx, sentence_i
     }
     if manual_scroll_anchor:
         progress["manual_scroll_anchor"] = manual_scroll_anchor
+    if original_file_path:
+        progress["original_file_path"] = original_file_path
         
     with open(progress_file, 'w', encoding='utf-8') as f:
         json.dump(progress, f, indent=2)
@@ -141,3 +145,32 @@ def validate_and_set_progress(chapters, progress_file, c, p, s):
         if os.path.exists(progress_file):
             os.remove(progress_file)
         return 0, 0, 0
+
+def find_most_recent_book():
+    """
+    Find the most recently updated progress file and return the original file path.
+    
+    Returns:
+        str or None: Path to the most recently read book, or None if no books found
+    """
+    progress_files = glob.glob(os.path.join(config.PROGRESS_FILE_DIR, "*.progress.json"))
+    
+    if not progress_files:
+        return None
+    
+    # Find the most recently modified progress file
+    most_recent_file = max(progress_files, key=os.path.getmtime)
+    
+    try:
+        with open(most_recent_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            original_path = data.get("original_file_path")
+            
+            # Check if the original file still exists
+            if original_path and os.path.exists(original_path):
+                return original_path
+                
+    except (json.JSONDecodeError, IOError):
+        pass
+    
+    return None
