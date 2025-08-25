@@ -43,6 +43,10 @@ class Lue:
         self.pending_restart_task = None
         self.playback_speed = 1.0  # Default speed multiplier
         
+        # Add pause toggle lock and task tracking
+        self.pause_toggle_lock = asyncio.Lock()
+        self.current_pause_toggle_task = None
+
     def _initialize_tts(self, tts_model):
         """Initialize TTS-related state."""
         self.tts_model = tts_model
@@ -795,9 +799,22 @@ class Lue:
         self._save_extended_progress()
 
     async def _handle_pause_toggle(self):
-        await audio.stop_and_clear_audio(self)
-        if not self.is_paused and self.running:
-            await audio.play_from_current_position(self)
+        """Handle pause/resume toggle with proper locking to prevent concurrent audio playback."""
+        async with self.pause_toggle_lock:
+            # Cancel any existing pause toggle task
+            if self.current_pause_toggle_task and not self.current_pause_toggle_task.done():
+                self.current_pause_toggle_task.cancel()
+                try:
+                    await self.current_pause_toggle_task
+                except asyncio.CancelledError:
+                    pass
+            
+            # Stop current audio playback
+            await audio.stop_and_clear_audio(self)
+            
+            # Only start playback if we're not paused and still running
+            if not self.is_paused and self.running and self.tts_model:
+                await audio.play_from_current_position(self)
 
     def _handle_resize(self, signum, frame):
         if not self.resize_scheduled:
@@ -853,8 +870,8 @@ class Lue:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         signal.signal(signal.SIGTERM, signal.SIG_DFL)
         
-        # Cancel all tasks including pending restart task
-        tasks_to_cancel = [self.smooth_scroll_task, self.ui_update_task, self.pending_restart_task]
+        # Cancel all tasks including pending restart task and pause toggle task
+        tasks_to_cancel = [self.smooth_scroll_task, self.ui_update_task, self.pending_restart_task, self.current_pause_toggle_task]
         for task in tasks_to_cancel:
             if task and not task.done():
                 task.cancel()
@@ -999,7 +1016,8 @@ class Lue:
                 if not self.tts_model: continue
                 self.is_paused = not self.is_paused
                 self._save_extended_progress()
-                asyncio.create_task(self._handle_pause_toggle())
+                # Track the pause toggle task for proper management
+                self.current_pause_toggle_task = asyncio.create_task(self._handle_pause_toggle())
             elif cmd in ['scroll_page_up', 'scroll_page_down']:
                 self._handle_page_scroll_immediate(-1 if 'up' in cmd else 1)
             elif cmd in ['scroll_up', 'wheel_scroll_up']:
