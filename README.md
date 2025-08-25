@@ -10,7 +10,7 @@
 [![Terminal](https://img.shields.io/badge/interface-terminal-blue.svg)](https://github.com/superstarryeyes/lue)
 [![Discord](https://img.shields.io/badge/Discord-Join%20our%20Community-5865F2?logo=discord&logoColor=white)](https://discord.gg/xynDDqsm)
 
-[Features](#-features) • [Quick Start](#-quick-start) • [Installation](#-installation) • [ [Usage](#-usage) • [Development](#-development)
+[Features](#-features) • [Quick Start](#-quick-start) • [Installation](#-installation) • [Usage](#-usage) • [Development](#-development)
 
 <img src="https://github.com/superstarryeyes/lue/blob/main/images/screenshot.png" alt="Lue Screenshot" width="100%" />
 
@@ -171,7 +171,7 @@ lue --help
 | `i` / `m`                               | Jump up or down by full pages for rapid navigation through longer documents                    |
 | `u` / `n`                               | Scroll up or down by smaller increments for fine-grained position control                      |
 | `y` / `b`                               | Jump directly to the beginning or end of the document for quick navigation                     |
-| `,` / `.`                               | Decrease or increase text-to-speech playback speed (1.0x to 3.0x)                              |
+| `,` / `.`                               | Decrease or increase text-to-speech playback speed (1x to 3x)                                  |
 
 </div>
 
