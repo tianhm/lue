@@ -268,16 +268,29 @@ async def _player_loop(reader):
                 playback_task = asyncio.create_task(await_and_remove(process, audio_file))
                 reader.active_playback_tasks.append(playback_task)
                 
-                if reader.overlap_override is not None:
-                    overlap_seconds = reader.overlap_override
+                # Calculate dynamic overlap based on playback speed
+                # Overlap should decrease as speed increases, reaching 0 at 3.00x speed and beyond
+                base_overlap = config.OVERLAP_SECONDS
+                if reader.tts_model and hasattr(reader.tts_model, 'get_overlap_seconds'):
+                    tts_overlap = reader.tts_model.get_overlap_seconds()
+                    if tts_overlap is not None:
+                        base_overlap = tts_overlap
+                
+                # Apply speed-based overlap reduction
+                # At 1.0x speed: full overlap
+                # At 3.00x speed and above: 0 overlap
+                # Linear decrease between 1.0x and 3.0x
+                speed = reader.playback_speed
+                if speed >= 3.0:
+                    overlap_seconds = 0.0
                 else:
-                    overlap_seconds = config.OVERLAP_SECONDS
-                    if reader.tts_model and hasattr(reader.tts_model, 'get_overlap_seconds'):
-                        tts_overlap = reader.tts_model.get_overlap_seconds()
-                        if tts_overlap is not None: overlap_seconds = tts_overlap
+                    # Calculate overlap as a linear function decreasing from base_overlap to 0
+                    # as speed increases from 1.0 to 3.0
+                    overlap_factor = max(0.0, min(1.0, (3.0 - speed) / (3.0 - 1.0)))
+                    overlap_seconds = base_overlap * overlap_factor
                 
                 # Adjust duration for playback speed
-                actual_duration = duration / reader.playback_speed
+                actual_duration = duration / speed
                 
                 await asyncio.sleep(max(0.1, actual_duration - overlap_seconds))
                 reader.audio_queue.task_done()
@@ -291,3 +304,4 @@ async def _player_loop(reader):
             try:
                 if process.returncode is None: process.terminate()
             except (ProcessLookupError, AttributeError): pass
+    
