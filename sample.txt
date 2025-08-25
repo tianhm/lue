@@ -18,7 +18,12 @@ Chapter 4: Mouse Actions
 If your terminal supports mouse input, you can click on any sentence to jump to it instantly. Use the mouse wheel or trackpad to scroll through the text, or click on the progress bar to skip directly to that position in the book.
 
 
-Chapter 5: Ending the Session
+Chapter 5: Speed Adjustment
+
+Lue allows you to adjust the text-to-speech playback speed to match your listening preference. You can increase the speed up to 3x faster. To increase the playback speed, press the period key. Each press will increase the speed incrementally. To decrease the playback speed, press the comma key. Each press will decrease the speed back down to the normal 1x speed.
+
+
+Chapter 6: Ending the Session
 
 When you are ready to stop reading, press "q" to quit. Your place and your reading mode will be saved automatically, so you can resume later without losing your spot.
 
