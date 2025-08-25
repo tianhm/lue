@@ -41,6 +41,7 @@ class Lue:
         self.active_playback_tasks = []
         self.audio_restart_lock = asyncio.Lock()
         self.pending_restart_task = None
+        self.playback_speed = 1.0  # Default speed multiplier
         
     def _initialize_tts(self, tts_model):
         """Initialize TTS-related state."""
@@ -83,6 +84,7 @@ class Lue:
         self.scroll_offset = progress_data["scroll_offset"]
         self.auto_scroll_enabled = progress_data["auto_scroll_enabled"]
         self.is_paused = not progress_data["tts_enabled"]
+        self.playback_speed = progress_data["playback_speed"]
         if not self.tts_model:
             self.is_paused = True
             
@@ -526,6 +528,64 @@ class Lue:
             return success
         return False
 
+    def _increase_speed(self):
+        """Increase playback speed."""
+        speed_levels = [1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
+        current_index = 0
+        for i, speed in enumerate(speed_levels):
+            if abs(speed - self.playback_speed) < 0.01:
+                current_index = i
+                break
+        
+        if current_index < len(speed_levels) - 1:
+            self.playback_speed = speed_levels[current_index + 1]
+            self._save_extended_progress()
+            return True
+        return False
+
+    def _decrease_speed(self):
+        """Decrease playback speed (limited to not go below 1.0x)."""
+        speed_levels = [1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
+        current_index = 0
+        for i, speed in enumerate(speed_levels):
+            if abs(speed - self.playback_speed) < 0.01:
+                current_index = i
+                break
+        
+        # Only allow decreasing speed if we're above 1.0x
+        if current_index > 0:
+            self.playback_speed = speed_levels[current_index - 1]
+            self._save_extended_progress()
+            return True
+        return False
+
+    def _get_speed_display(self):
+        """Get the speed display string for UI using superscript characters with middle dot and fixed decimal places."""
+        if abs(self.playback_speed - 1.0) < 0.01:
+            return ""  # Don't show anything for normal speed
+        
+        # Mapping of regular digits to superscript digits
+        superscript_map = {
+            '0': '⁰',
+            '1': '¹',
+            '2': '²',
+            '3': '³',
+            '4': '⁴',
+            '5': '⁵',
+            '6': '⁶',
+            '7': '⁷',
+            '8': '⁸',
+            '9': '⁹',
+            '.': ''  # Decimal point
+        }
+        
+        # Format speed as a string with exactly two decimal places and convert to superscript
+        speed_str = f"{self.playback_speed:.2f}"
+        superscript_str = ''.join(superscript_map.get(char, char) for char in speed_str)
+        
+        # Return the speed indicator without leading space
+        return f"ˣ{superscript_str}"
+
     def _advance_position(self, current_pos, mode='sentence', wrap=True):
         c, p, s = current_pos
         if mode == 'paragraph': p, s = p + 1, 0
@@ -637,7 +697,8 @@ class Lue:
             not self.is_paused, 
             self.auto_scroll_enabled,
             manual_scroll_anchor=manual_scroll_anchor,
-            original_file_path=self.file_path
+            original_file_path=self.file_path,
+            playback_speed=self.playback_speed
         )
 
     def _scroll_to_position_immediate(self, chapter_idx, paragraph_idx, sentence_idx):
@@ -653,7 +714,7 @@ class Lue:
         self.scroll_offset = self.target_scroll_offset = max(0, self.scroll_offset - 1)
         if self.smooth_scroll_task and not self.smooth_scroll_task.done(): self.smooth_scroll_task.cancel()
         self.chapter_idx, self.paragraph_idx, self.sentence_idx = self.ui_chapter_idx, self.ui_paragraph_idx, self.ui_sentence_idx
-        progress_manager.save_extended_progress(self.progress_file, self.chapter_idx, self.paragraph_idx, self.sentence_idx, self.scroll_offset, not self.is_paused, self.auto_scroll_enabled, original_file_path=self.file_path)
+        progress_manager.save_extended_progress(self.progress_file, self.chapter_idx, self.paragraph_idx, self.sentence_idx, self.scroll_offset, not self.is_paused, self.auto_scroll_enabled, original_file_path=self.file_path, playback_speed=self.playback_speed)
 
     def _handle_scroll_down_immediate(self):
         self.auto_scroll_enabled = False
@@ -661,7 +722,7 @@ class Lue:
         self.scroll_offset = self.target_scroll_offset = min(max_scroll, self.scroll_offset + 1)
         if self.smooth_scroll_task and not self.smooth_scroll_task.done(): self.smooth_scroll_task.cancel()
         self.chapter_idx, self.paragraph_idx, self.sentence_idx = self.ui_chapter_idx, self.ui_paragraph_idx, self.ui_sentence_idx
-        progress_manager.save_extended_progress(self.progress_file, self.chapter_idx, self.paragraph_idx, self.sentence_idx, self.scroll_offset, not self.is_paused, self.auto_scroll_enabled, original_file_path=self.file_path)
+        progress_manager.save_extended_progress(self.progress_file, self.chapter_idx, self.paragraph_idx, self.sentence_idx, self.scroll_offset, not self.is_paused, self.auto_scroll_enabled, original_file_path=self.file_path, playback_speed=self.playback_speed)
 
     def _handle_navigation_immediate(self, cmd):
         current_pos = (self.chapter_idx, self.paragraph_idx, self.sentence_idx)
@@ -912,7 +973,7 @@ class Lue:
                         new_available_height = max(1, new_height - 4)
                         new_max_scroll = max(0, len(self.document_lines) - new_available_height)
                         new_scroll = target_line - int(round(fraction_in_view * new_available_height))
-                        self.scroll_offset = max(0, min(new_scroll, new_max_scroll))
+                        self.scroll_offset = max(0, target_line - available_height // 2)
                         self.target_scroll_offset = self.scroll_offset
                     else:
                         # Fallback to percentage-based scrolling if anchor is not found
@@ -961,6 +1022,20 @@ class Lue:
                 self._handle_move_to_end_immediate()
             elif cmd == 'copy_selection':
                 self._handle_copy_selection()
+            elif cmd == 'increase_speed':
+                if self._increase_speed():
+                    # Force immediate UI update to show new speed
+                    asyncio.create_task(ui.display_ui(self))
+                    # Restart audio with new speed if currently playing
+                    if not self.is_paused and self.tts_model:
+                        self.pending_restart_task = asyncio.create_task(self._restart_audio_after_navigation())
+            elif cmd == 'decrease_speed':
+                if self._decrease_speed():
+                    # Force immediate UI update to show new speed
+                    asyncio.create_task(ui.display_ui(self))
+                    # Restart audio with new speed if currently playing
+                    if not self.is_paused and self.tts_model:
+                        self.pending_restart_task = asyncio.create_task(self._restart_audio_after_navigation())
             elif 'next' in cmd or 'prev' in cmd:
                 self._handle_navigation_immediate(cmd)
                 self.pending_restart_task = asyncio.create_task(self._restart_audio_after_navigation())

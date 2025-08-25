@@ -54,7 +54,8 @@ def load_extended_progress(progress_file):
         "scroll_offset": 0,
         "tts_enabled": True,
         "auto_scroll_enabled": True,
-        "manual_scroll_anchor": None
+        "manual_scroll_anchor": None,
+        "playback_speed": 1.0
     }
     
     if not os.path.exists(progress_file):
@@ -70,7 +71,8 @@ def load_extended_progress(progress_file):
                 "scroll_offset": data.get("scroll_offset", 0),
                 "tts_enabled": data.get("tts_enabled", True),
                 "auto_scroll_enabled": data.get("auto_scroll_enabled", True),
-                "manual_scroll_anchor": data.get("manual_scroll_anchor", None)
+                "manual_scroll_anchor": data.get("manual_scroll_anchor", None),
+                "playback_speed": data.get("playback_speed", 1.0)
             }
     except (json.JSONDecodeError, IOError):
         return default_progress
@@ -90,7 +92,7 @@ def save_progress(progress_file, chapter_idx, paragraph_idx, sentence_idx):
         json.dump(progress, f, indent=2)
 
 def save_extended_progress(progress_file, chapter_idx, paragraph_idx, sentence_idx, 
-                          scroll_offset, tts_enabled, auto_scroll_enabled, manual_scroll_anchor=None, original_file_path=None):
+                          scroll_offset, tts_enabled, auto_scroll_enabled, manual_scroll_anchor=None, original_file_path=None, playback_speed=1.0):
     """
     Save extended reading progress including UI state.
     
@@ -111,7 +113,8 @@ def save_extended_progress(progress_file, chapter_idx, paragraph_idx, sentence_i
         "s": sentence_idx,
         "scroll_offset": float(scroll_offset),
         "tts_enabled": bool(tts_enabled),
-        "auto_scroll_enabled": bool(auto_scroll_enabled)
+        "auto_scroll_enabled": bool(auto_scroll_enabled),
+        "playback_speed": float(playback_speed)
     }
     if manual_scroll_anchor:
         progress["manual_scroll_anchor"] = manual_scroll_anchor

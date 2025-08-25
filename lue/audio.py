@@ -217,7 +217,31 @@ async def _player_loop(reader):
                     reader.audio_queue.task_done()
                     break
                 try:
-                    process = await asyncio.create_subprocess_exec('ffplay', '-nodisp', '-autoexit', '-loglevel', 'error', audio_file, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    # Build ffplay command with speed control using atempo filter
+                    cmd = ['ffplay', '-nodisp', '-autoexit', '-loglevel', 'error']
+                    
+                    # Add atempo filter if speed is not 1.0
+                    if abs(reader.playback_speed - 1.0) > 0.01:
+                        # atempo filter has limitations: must be between 0.5 and 2.0
+                        # For speeds outside this range, we chain multiple atempo filters
+                        speed = reader.playback_speed
+                        filters = []
+                        
+                        while speed > 2.0:
+                            filters.append('atempo=2.0')
+                            speed /= 2.0
+                        while speed < 0.5:
+                            filters.append('atempo=0.5')
+                            speed /= 0.5
+                        if abs(speed - 1.0) > 0.01:
+                            filters.append(f'atempo={speed:.3f}')
+                        
+                        if filters:
+                            filter_chain = ','.join(filters)
+                            cmd.extend(['-af', filter_chain])
+                    
+                    cmd.append(audio_file)
+                    process = await asyncio.create_subprocess_exec(*cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                     reader.playback_processes.append(process)
                 except Exception:
                     reader.audio_queue.task_done()
@@ -252,7 +276,10 @@ async def _player_loop(reader):
                         tts_overlap = reader.tts_model.get_overlap_seconds()
                         if tts_overlap is not None: overlap_seconds = tts_overlap
                 
-                await asyncio.sleep(max(0.1, duration - overlap_seconds))
+                # Adjust duration for playback speed
+                actual_duration = duration / reader.playback_speed
+                
+                await asyncio.sleep(max(0.1, actual_duration - overlap_seconds))
                 reader.audio_queue.task_done()
             except asyncio.TimeoutError:
                 if not reader.running: break

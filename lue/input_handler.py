@@ -119,6 +119,10 @@ def process_input(reader):
                 cmd = 'move_to_beginning'
             elif data == 'b':
                 cmd = 'move_to_end'
+            elif data == ',':
+                cmd = 'decrease_speed'
+            elif data == '.':
+                cmd = 'increase_speed'
             
             if cmd:
                 reader.loop.call_soon_threadsafe(reader._post_command_sync, cmd)

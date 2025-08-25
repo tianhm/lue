@@ -29,7 +29,7 @@ class UIIcons:
     QUIT = "⏻"
     
     # Separators
-    SEPARATOR = "·"
+    SEPARATOR = "⸱"
     
     # Progress bar
     PROGRESS_FILLED = "▓"
@@ -337,12 +337,8 @@ def get_compact_subtitle(reader, width):
     status_icon = ICONS.PLAYING if not reader.is_paused else ICONS.PAUSED
     status_text = "PLAYING" if not reader.is_paused else "PAUSED"
     
-    if reader.auto_scroll_enabled:
-        auto_scroll_icon = ICONS.AUTO_SCROLL
-        auto_scroll_text = "AUTO"
-    else:
-        auto_scroll_icon = ICONS.MANUAL_MODE
-        auto_scroll_text = "MANUAL"
+    # Add speed indicator if not normal speed
+    speed_indicator = reader._get_speed_display() if hasattr(reader, '_get_speed_display') else ""
     
     # Control text with centralized colors
     nav_text_1 = f"[{COLORS.CONTROL_KEYS}]h{ICONS.SEPARATOR}j[/{COLORS.CONTROL_KEYS}]"
@@ -352,10 +348,22 @@ def get_compact_subtitle(reader, width):
     quit_text = f"[{COLORS.CONTROL_KEYS}]q[/{COLORS.CONTROL_KEYS}]"
     auto_text = f"[{COLORS.CONTROL_KEYS}]a{ICONS.SEPARATOR}t[/{COLORS.CONTROL_KEYS}]"
     
+    if reader.auto_scroll_enabled:
+        auto_scroll_icon = ICONS.AUTO_SCROLL
+        auto_scroll_text = "AUTO"
+    else:
+        auto_scroll_icon = ICONS.MANUAL_MODE
+        auto_scroll_text = "MANUAL"
+    
     if width >= 80:
         base_sep = ICONS.LINE_SEPARATOR_LONG
         
-        status_part = f"[{COLORS.CONTROL_KEYS}]p[/{COLORS.CONTROL_KEYS}] {status_icon} {status_text}"
+        # Construct status part with proper spacing
+        if speed_indicator:
+            status_part = f"[{COLORS.CONTROL_KEYS}]p[/{COLORS.CONTROL_KEYS}] {status_icon} {speed_indicator} {status_text}"
+        else:
+            status_part = f"[{COLORS.CONTROL_KEYS}]p[/{COLORS.CONTROL_KEYS}] {status_icon} {status_text}"
+            
         status_extra = 1 if status_text == "PAUSED" else 0
         status_sep = base_sep + (ICONS.LINE_SEPARATOR_SHORT * status_extra)
         
@@ -378,7 +386,13 @@ def get_compact_subtitle(reader, width):
         )
     elif width >= 70:
         separator = ICONS.LINE_SEPARATOR_LONG
-        icon_status = f"[{COLORS.CONTROL_KEYS}]p[/{COLORS.CONTROL_KEYS}] {status_icon}"
+        
+        # Construct status part with proper spacing
+        if speed_indicator:
+            icon_status = f"[{COLORS.CONTROL_KEYS}]p[/{COLORS.CONTROL_KEYS}] {status_icon}{speed_indicator}"
+        else:
+            icon_status = f"[{COLORS.CONTROL_KEYS}]p[/{COLORS.CONTROL_KEYS}] {status_icon}"
+            
         icon_auto = f"{auto_scroll_icon}"
         controls_text = f"[{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {nav_text_1} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_UP}[/{COLORS.CONTROL_ICONS}] {nav_text_2} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_DOWN}[/{COLORS.CONTROL_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {page_text} [{COLORS.ARROW_ICONS}]{ICONS.ROW_NAVIGATION}[/{COLORS.ARROW_ICONS}] {scroll_text} [{COLORS.ARROW_ICONS}]{ICONS.PAGE_NAVIGATION}[/{COLORS.ARROW_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {quit_text} [{COLORS.QUIT_ICON}]{ICONS.QUIT}[/{COLORS.QUIT_ICON}]"
         
@@ -388,7 +402,13 @@ def get_compact_subtitle(reader, width):
         return f"[{playing_color}]{icon_status}[/{playing_color}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {auto_text} [{auto_color}]{icon_auto}[/{auto_color}] {controls_text}"
     elif width >= 65:
         separator = ICONS.LINE_SEPARATOR_MEDIUM
-        icon_status = f"[{COLORS.CONTROL_KEYS}]p[/{COLORS.CONTROL_KEYS}] {status_icon}"
+        
+        # Construct status part with proper spacing
+        if speed_indicator:
+            icon_status = f"[{COLORS.CONTROL_KEYS}]p[/{COLORS.CONTROL_KEYS}] {status_icon}{speed_indicator}"
+        else:
+            icon_status = f"[{COLORS.CONTROL_KEYS}]p[/{COLORS.CONTROL_KEYS}] {status_icon}"
+            
         icon_auto = f"{auto_scroll_icon}"
         controls_text = f"[{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {nav_text_1} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_UP}[/{COLORS.CONTROL_ICONS}] {nav_text_2} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_DOWN}[/{COLORS.CONTROL_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {page_text} [{COLORS.ARROW_ICONS}]{ICONS.ROW_NAVIGATION}[/{COLORS.ARROW_ICONS}] {scroll_text} [{COLORS.ARROW_ICONS}]{ICONS.PAGE_NAVIGATION}[/{COLORS.ARROW_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {quit_text} [{COLORS.QUIT_ICON}]{ICONS.QUIT}[/{COLORS.QUIT_ICON}]"
         
@@ -398,7 +418,13 @@ def get_compact_subtitle(reader, width):
         return f"[{playing_color}]{icon_status}[/{playing_color}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {auto_text} [{auto_color}]{icon_auto}[/{auto_color}] {controls_text}"
     else:
         separator = ICONS.LINE_SEPARATOR_SHORT
-        icon_status = f"[{COLORS.CONTROL_KEYS}]p[/{COLORS.CONTROL_KEYS}] {status_icon}"
+        
+        # Construct status part with proper spacing
+        if speed_indicator:
+            icon_status = f"[{COLORS.CONTROL_KEYS}]p[/{COLORS.CONTROL_KEYS}] {status_icon}{speed_indicator}"
+        else:
+            icon_status = f"[{COLORS.CONTROL_KEYS}]p[/{COLORS.CONTROL_KEYS}] {status_icon}"
+            
         icon_auto = f"{auto_scroll_icon}"
         controls_text = f"[{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {nav_text_1} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_UP}[/{COLORS.CONTROL_ICONS}] {nav_text_2} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_DOWN}[/{COLORS.CONTROL_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {page_text} [{COLORS.ARROW_ICONS}]{ICONS.ROW_NAVIGATION}[/{COLORS.ARROW_ICONS}] {scroll_text} [{COLORS.ARROW_ICONS}]{ICONS.PAGE_NAVIGATION}[/{COLORS.ARROW_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {quit_text} [{COLORS.QUIT_ICON}]{ICONS.QUIT}[/{COLORS.QUIT_ICON}]"
         
@@ -422,7 +448,9 @@ async def display_ui(reader):
                 reader.ui_chapter_idx, reader.ui_paragraph_idx, reader.ui_sentence_idx,
                 rounded_scroll, reader.is_paused, int(progress_percent),
                 width, height, reader.auto_scroll_enabled, reader.selection_active,
-                reader.selection_start, reader.selection_end
+                reader.selection_start, reader.selection_end,
+                # Add playback speed to trigger UI updates when speed changes
+                reader.playback_speed
             )
             
             if reader.last_rendered_state == current_state and reader.last_terminal_size == (width, height):
