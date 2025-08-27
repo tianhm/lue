@@ -56,6 +56,13 @@ class Lue:
         """Load and process the document content."""
         self.console.print(f"[bold cyan]Loading document: {self.book_title}...[/bold cyan]")
         self.chapters = content_parser.extract_content(self.file_path, self.console)
+        
+        # Check if any content was extracted
+        if not self.chapters or not any(chapter for chapter in self.chapters):
+            self.console.print(f"[bold red]Error: No text could be extracted from the file.[/bold red]")
+            self.console.print("This might happen with image-based PDFs or unsupported formats.")
+            sys.exit(1)
+            
         self.console.print(f"[green]Document loaded successfully![/green]")
         self.console.print(f"[bold cyan]Loading TTS model...[/bold cyan]")
         
