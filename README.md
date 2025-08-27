@@ -28,7 +28,7 @@
 | **💾 Smart Persistence**                | Automatic progress saving, state restoration, and cross-session continuity for seamless reading|
 | **🌍 Cross-Platform & Multilingual**    | Full support for macOS, Linux, Windows with 100+ languages and consistent global experience    |
 | **⚡️ Fast Navigation**                  | Intuitive shortcuts, flexible controls, and smooth scrolling for efficient book navigation     |
-| **🎛️ Speed Adjustment**                 | Adjust text-to-speech playback speed from 1.0x to 3.0x for personalized listening experience    |
+| **🎛️ Speed Adjustment**                 | Adjust text-to-speech playback speed from 1x to 3x for personalized listening experience    |
 
 ---
 
