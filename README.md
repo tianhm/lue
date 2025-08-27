@@ -143,6 +143,9 @@ lue --tts kokoro path/to/your/book.epub
 # Use a specific voice (full list at VOICES.md)
 lue --voice "en-US-AriaNeural" path/to/your/book.epub
 
+# Set the speech speed (e.g., 1.5x)
+lue --speed 1.5 path/to/your/book.epub
+
 # Specify a language code if needed
 lue --lang a path/to/your/book.epub
 

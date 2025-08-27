@@ -81,6 +81,13 @@ async def main():
             help="Specify the voice for the TTS model",
         )
         parser.add_argument(
+            "-s",
+            "--speed",
+            type=float,
+            default=1.0,
+            help="Set the speech speed (default: 1.0)",
+        )
+        parser.add_argument(
             "-l",
             "--lang",
             help="Specify the language for the TTS model",
@@ -132,6 +139,8 @@ async def main():
         tts_instance = tts_manager.create_model(args.tts, console, voice=voice, lang=lang)
 
     reader = Lue(args.file_path, tts_model=tts_instance, overlap=args.over)
+    if hasattr(args, 'speed'):
+        reader.playback_speed = args.speed
         
     # Hide cursor, enable mouse tracking
     sys.stdout.write('\033[?1000h\033[?1006h\033[?25l')
