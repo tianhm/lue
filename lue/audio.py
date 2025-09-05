@@ -172,17 +172,33 @@ async def _producer_loop(reader):
                 
                 cleaned_text = clean_tts_text(text)
                 
+                word_timings = []
+                speech_duration = None
+                
                 # Use the timing-aware method if available
                 if hasattr(reader.tts_model, 'generate_audio_with_timing'):
-                    duration, word_timings = await reader.tts_model.generate_audio_with_timing(cleaned_text, output_filename)
+                    try:
+                        speech_duration, word_timings = await reader.tts_model.generate_audio_with_timing(cleaned_text, output_filename)
+                    except Exception:
+                        # If timing generation fails, fall back to generating without it
+                        await reader.tts_model.generate_audio(cleaned_text, output_filename)
                 else:
                     # Fallback to regular method
                     await reader.tts_model.generate_audio(cleaned_text, output_filename)
-                    duration = await get_audio_duration(output_filename)
-                    word_timings = []
+
+                # Always get the actual duration from the file
+                duration = await get_audio_duration(output_filename)
                 
                 if not reader.running: break
-                await asyncio.wait_for(reader.audio_queue.put((output_filename, *producer_pos, duration, word_timings)), timeout=1.0)
+                
+                # If timing info is available, store it in a more structured way
+                timing_info = {
+                    "word_timings": word_timings,
+                    "speech_duration": speech_duration,
+                    "total_duration": duration
+                }
+                
+                await asyncio.wait_for(reader.audio_queue.put((output_filename, *producer_pos, duration, timing_info)), timeout=1.0)
                 
                 next_pos = reader._advance_position(producer_pos, wrap=False)
                 if merged:
@@ -216,13 +232,15 @@ async def _player_loop(reader):
                         await asyncio.gather(*reader.active_playback_tasks, return_exceptions=True)
                     reader.playback_finished_event.set()
                     break
-                # Extract word timings if available
-                if len(item) == 4:  # Old format: (audio_file, c, p, s)
-                    audio_file, c, p, s = item
-                    duration = await get_audio_duration(audio_file)
-                    word_timings = []
-                else:  # New format: (audio_file, c, p, s, duration, word_timings)
-                    audio_file, c, p, s, duration, word_timings = item
+                # Unpack the queue item
+                audio_file, c, p, s, duration, timing_data = item
+                if isinstance(timing_data, dict):
+                    timing_info = timing_data
+                else:
+                    # Old format, timing_data is word_timings
+                    timing_info = {"word_timings": timing_data, "speech_duration": duration, "total_duration": duration}
+
+                word_timings = timing_info.get("word_timings", [])
                 
                 if not os.path.exists(audio_file):
                     reader.audio_queue.task_done()
@@ -238,7 +256,7 @@ async def _player_loop(reader):
                     sentences = content_parser.split_into_sentences(reader.chapters[c][p])
                     current_text = sentences[s]
                     reader.current_sentence_words = current_text.split()
-                    reader.current_sentence_duration = duration
+                    reader.current_sentence_duration = timing_info.get("speech_duration") or duration
                     reader.current_word_start_time = asyncio.get_event_loop().time()
                     
                     # Store precise word timings if available

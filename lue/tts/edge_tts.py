@@ -86,10 +86,10 @@ class EdgeTTS(TTSBase):
                     adjusted_word_timings.append((word, start_time, adjusted_end_time))
                 word_timings = adjusted_word_timings
             
-            # Calculate total audio duration from word timings
-            audio_duration = max([end for _, _, end in word_timings]) if word_timings else 0
+            # The speech duration is the end time of the last word
+            speech_duration = max([end for _, _, end in word_timings]) if word_timings else 0
             
-            return audio_duration, word_timings
+            return speech_duration, word_timings
             
         except Exception as e:
             logging.error(f"Edge TTS audio generation failed for text: '{text[:50]}...'", exc_info=True)
