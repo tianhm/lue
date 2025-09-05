@@ -44,10 +44,8 @@ brew install ffmpeg
 sudo apt install ffmpeg
 # Windows: Download from ffmpeg.org and add to PATH
 
-# 2. Clone and setup
-git clone https://github.com/superstarryeyes/lue.git
-cd lue
-pip install -r requirements.txt
+# 2. Install the latest version from PyPI
+pip install lue-reader
 
 # 3. Start reading!
 python -m lue sample.txt
