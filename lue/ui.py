@@ -230,7 +230,17 @@ def get_visible_content(reader):
             if sent_idx == reader.ui_sentence_idx and config.SENTENCE_HIGHLIGHTING_ENABLED:
                 # Apply word-level highlighting within the current sentence
                 if config.WORD_HIGHLIGHTING_ENABLED and hasattr(reader, 'ui_word_idx'):
-                    words = sentence.split()
+                    # Preserve leading whitespace from the sentence, which contains paragraph indentation
+                    leading_whitespace = ""
+                    if sentence:
+                        match = re.match(r"^(\s+)", sentence)
+                        if match:
+                            leading_whitespace = match.group(1)
+                    
+                    if leading_whitespace:
+                        highlighted_text.append(leading_whitespace, style=COLORS.TEXT_HIGHLIGHT)
+                        
+                    words = sentence.lstrip().split()
                     for word_idx, word in enumerate(words):
                         if word_idx == reader.ui_word_idx:
                             highlighted_text.append(word, style=COLORS.WORD_HIGHLIGHT)
