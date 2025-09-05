@@ -727,11 +727,34 @@ class Lue:
         self.chapter_idx, self.paragraph_idx, self.sentence_idx = self.ui_chapter_idx, self.ui_paragraph_idx, self.ui_sentence_idx
         progress_manager.save_extended_progress(self.progress_file, self.chapter_idx, self.paragraph_idx, self.sentence_idx, self.scroll_offset, not self.is_paused, self.auto_scroll_enabled, original_file_path=self.file_path, playback_speed=self.playback_speed)
 
+    def _handle_scroll_up_smooth(self):
+        self.auto_scroll_enabled = False
+        target_offset = max(0, self.scroll_offset - 1)
+        if config.SMOOTH_SCROLLING_ENABLED:
+            self._smooth_scroll_to(target_offset)
+        else:
+            self.scroll_offset = self.target_scroll_offset = target_offset
+            if self.smooth_scroll_task and not self.smooth_scroll_task.done(): self.smooth_scroll_task.cancel()
+        self.chapter_idx, self.paragraph_idx, self.sentence_idx = self.ui_chapter_idx, self.ui_paragraph_idx, self.ui_sentence_idx
+        progress_manager.save_extended_progress(self.progress_file, self.chapter_idx, self.paragraph_idx, self.sentence_idx, self.scroll_offset, not self.is_paused, self.auto_scroll_enabled, original_file_path=self.file_path, playback_speed=self.playback_speed)
+
     def _handle_scroll_down_immediate(self):
         self.auto_scroll_enabled = False
         max_scroll = max(0, len(self.document_lines) - (ui.get_terminal_size()[1] - 4))
         self.scroll_offset = self.target_scroll_offset = min(max_scroll, self.scroll_offset + 1)
         if self.smooth_scroll_task and not self.smooth_scroll_task.done(): self.smooth_scroll_task.cancel()
+        self.chapter_idx, self.paragraph_idx, self.sentence_idx = self.ui_chapter_idx, self.ui_paragraph_idx, self.ui_sentence_idx
+        progress_manager.save_extended_progress(self.progress_file, self.chapter_idx, self.paragraph_idx, self.sentence_idx, self.scroll_offset, not self.is_paused, self.auto_scroll_enabled, original_file_path=self.file_path, playback_speed=self.playback_speed)
+
+    def _handle_scroll_down_smooth(self):
+        self.auto_scroll_enabled = False
+        max_scroll = max(0, len(self.document_lines) - (ui.get_terminal_size()[1] - 4))
+        target_offset = min(max_scroll, self.scroll_offset + 1)
+        if config.SMOOTH_SCROLLING_ENABLED:
+            self._smooth_scroll_to(target_offset)
+        else:
+            self.scroll_offset = self.target_scroll_offset = target_offset
+            if self.smooth_scroll_task and not self.smooth_scroll_task.done(): self.smooth_scroll_task.cancel()
         self.chapter_idx, self.paragraph_idx, self.sentence_idx = self.ui_chapter_idx, self.ui_paragraph_idx, self.ui_sentence_idx
         progress_manager.save_extended_progress(self.progress_file, self.chapter_idx, self.paragraph_idx, self.sentence_idx, self.scroll_offset, not self.is_paused, self.auto_scroll_enabled, original_file_path=self.file_path, playback_speed=self.playback_speed)
 
@@ -744,6 +767,26 @@ class Lue:
             self.chapter_idx, self.paragraph_idx, self.sentence_idx = new_pos
             self.ui_chapter_idx, self.ui_paragraph_idx, self.ui_sentence_idx = new_pos
             self._scroll_to_position_immediate(*new_pos)
+            self._save_extended_progress(sync_audio_position=True)
+
+    def _handle_navigation_smooth(self, cmd):
+        current_pos = (self.chapter_idx, self.paragraph_idx, self.sentence_idx)
+        direction, mode = cmd.split('_')
+        new_pos = self._advance_position(current_pos, mode) if direction == 'next' else self._rewind_position(current_pos, mode)
+        if new_pos:
+            self.first_sentence_jump = False
+            self.chapter_idx, self.paragraph_idx, self.sentence_idx = new_pos
+            self.ui_chapter_idx, self.ui_paragraph_idx, self.ui_sentence_idx = new_pos
+            # Use smooth scrolling for navigation
+            if new_pos in self.position_to_line:
+                target_line = self.position_to_line[new_pos]
+                _, height = ui.get_terminal_size()
+                available_height = max(1, height - 4)
+                new_offset = min(max(0, target_line - available_height // 2), max(0, len(self.document_lines) - available_height))
+                if config.SMOOTH_SCROLLING_ENABLED:
+                    self._smooth_scroll_to(new_offset)
+                else:
+                    self.scroll_offset = self.target_scroll_offset = new_offset
             self._save_extended_progress(sync_audio_position=True)
 
     async def _restart_audio_after_navigation(self):
@@ -774,6 +817,17 @@ class Lue:
         if self.smooth_scroll_task and not self.smooth_scroll_task.done(): self.smooth_scroll_task.cancel()
         self._save_extended_progress()
 
+    def _handle_page_scroll_smooth(self, direction):
+        self.auto_scroll_enabled = False
+        page_size = max(1, ui.get_terminal_size()[1] - 4)
+        target_offset = max(0, self.scroll_offset - page_size) if direction < 0 else min(max(0, len(self.document_lines) - page_size), self.scroll_offset + page_size)
+        if config.SMOOTH_SCROLLING_ENABLED:
+            self._smooth_scroll_to(target_offset)
+        else:
+            self.scroll_offset = self.target_scroll_offset = target_offset
+            if self.smooth_scroll_task and not self.smooth_scroll_task.done(): self.smooth_scroll_task.cancel()
+        self._save_extended_progress()
+
     def _handle_move_to_top_immediate(self):
         top_visible_line, bottom_visible_line = int(self.scroll_offset), int(self.scroll_offset) + max(1, ui.get_terminal_size()[1] - 4)
         topmost_sentence, topmost_line = None, float('inf')
@@ -788,11 +842,45 @@ class Lue:
         if self.smooth_scroll_task and not self.smooth_scroll_task.done(): self.smooth_scroll_task.cancel()
         self._save_extended_progress()
 
+    def _handle_move_to_top_smooth(self):
+        top_visible_line, bottom_visible_line = int(self.scroll_offset), int(self.scroll_offset) + max(1, ui.get_terminal_size()[1] - 4)
+        topmost_sentence, topmost_line = None, float('inf')
+        for pos, line in self.position_to_line.items():
+            if top_visible_line <= line < bottom_visible_line and line < topmost_line:
+                topmost_line, topmost_sentence = line, pos
+        if topmost_sentence:
+            self.chapter_idx, self.paragraph_idx, self.sentence_idx = topmost_sentence
+            self.ui_chapter_idx, self.ui_paragraph_idx, self.ui_sentence_idx = topmost_sentence
+            self.first_sentence_jump = True
+        self.auto_scroll_enabled = True
+        if config.SMOOTH_SCROLLING_ENABLED and topmost_sentence and topmost_sentence in self.position_to_line:
+            target_line = self.position_to_line[topmost_sentence]
+            _, height = ui.get_terminal_size()
+            available_height = max(1, height - 4)
+            target_offset = max(0, target_line - available_height // 2)
+            max_scroll = max(0, len(self.document_lines) - available_height)
+            target_offset = min(target_offset, max_scroll)
+            self._smooth_scroll_to(target_offset)
+        else:
+            if self.smooth_scroll_task and not self.smooth_scroll_task.done(): self.smooth_scroll_task.cancel()
+        self._save_extended_progress()
+
     def _handle_move_to_beginning_immediate(self):
         self.auto_scroll_enabled = False
         self.scroll_offset = self.target_scroll_offset = 0
         if self.smooth_scroll_task and not self.smooth_scroll_task.done():
             self.smooth_scroll_task.cancel()
+        self._save_extended_progress()
+
+    def _handle_move_to_beginning_smooth(self):
+        self.auto_scroll_enabled = False
+        target_offset = 0
+        if config.SMOOTH_SCROLLING_ENABLED:
+            self._smooth_scroll_to(target_offset)
+        else:
+            self.scroll_offset = self.target_scroll_offset = target_offset
+            if self.smooth_scroll_task and not self.smooth_scroll_task.done():
+                self.smooth_scroll_task.cancel()
         self._save_extended_progress()
 
     def _handle_move_to_end_immediate(self):
@@ -803,6 +891,20 @@ class Lue:
         self.scroll_offset = self.target_scroll_offset = max_scroll
         if self.smooth_scroll_task and not self.smooth_scroll_task.done():
             self.smooth_scroll_task.cancel()
+        self._save_extended_progress()
+
+    def _handle_move_to_end_smooth(self):
+        self.auto_scroll_enabled = False
+        _, height = ui.get_terminal_size()
+        available_height = max(1, height - 4)
+        max_scroll = max(0, len(self.document_lines) - available_height)
+        target_offset = max_scroll
+        if config.SMOOTH_SCROLLING_ENABLED:
+            self._smooth_scroll_to(target_offset)
+        else:
+            self.scroll_offset = self.target_scroll_offset = target_offset
+            if self.smooth_scroll_task and not self.smooth_scroll_task.done():
+                self.smooth_scroll_task.cancel()
         self._save_extended_progress()
 
     async def _handle_pause_toggle(self):
@@ -1026,11 +1128,20 @@ class Lue:
                 # Track the pause toggle task for proper management
                 self.current_pause_toggle_task = asyncio.create_task(self._handle_pause_toggle())
             elif cmd in ['scroll_page_up', 'scroll_page_down']:
-                self._handle_page_scroll_immediate(-1 if 'up' in cmd else 1)
+                if config.SMOOTH_SCROLLING_ENABLED:
+                    self._handle_page_scroll_smooth(-1 if 'up' in cmd else 1)
+                else:
+                    self._handle_page_scroll_immediate(-1 if 'up' in cmd else 1)
             elif cmd in ['scroll_up', 'wheel_scroll_up']:
-                self._handle_scroll_up_immediate()
+                if config.SMOOTH_SCROLLING_ENABLED:
+                    self._handle_scroll_up_smooth()
+                else:
+                    self._handle_scroll_up_immediate()
             elif cmd in ['scroll_down', 'wheel_scroll_down']:
-                self._handle_scroll_down_immediate()
+                if config.SMOOTH_SCROLLING_ENABLED:
+                    self._handle_scroll_down_smooth()
+                else:
+                    self._handle_scroll_down_immediate()
             elif cmd == 'toggle_auto_scroll':
                 self.auto_scroll_enabled = not self.auto_scroll_enabled
                 if self.auto_scroll_enabled:
@@ -1039,12 +1150,21 @@ class Lue:
                     self._scroll_to_position_immediate(self.chapter_idx, self.paragraph_idx, self.sentence_idx)
                 self._save_extended_progress()
             elif cmd == 'move_to_top_visible':
-                self._handle_move_to_top_immediate()
+                if config.SMOOTH_SCROLLING_ENABLED:
+                    self._handle_move_to_top_smooth()
+                else:
+                    self._handle_move_to_top_immediate()
                 self.pending_restart_task = asyncio.create_task(self._restart_audio_after_navigation())
             elif cmd == 'move_to_beginning':
-                self._handle_move_to_beginning_immediate()
+                if config.SMOOTH_SCROLLING_ENABLED:
+                    self._handle_move_to_beginning_smooth()
+                else:
+                    self._handle_move_to_beginning_immediate()
             elif cmd == 'move_to_end':
-                self._handle_move_to_end_immediate()
+                if config.SMOOTH_SCROLLING_ENABLED:
+                    self._handle_move_to_end_smooth()
+                else:
+                    self._handle_move_to_end_immediate()
             elif cmd == 'copy_selection':
                 self._handle_copy_selection()
             elif cmd == 'increase_speed':
@@ -1062,7 +1182,10 @@ class Lue:
                     if not self.is_paused and self.tts_model:
                         self.pending_restart_task = asyncio.create_task(self._restart_audio_after_navigation())
             elif 'next' in cmd or 'prev' in cmd:
-                self._handle_navigation_immediate(cmd)
+                if config.SMOOTH_SCROLLING_ENABLED:
+                    self._handle_navigation_smooth(cmd)
+                else:
+                    self._handle_navigation_immediate(cmd)
                 self.pending_restart_task = asyncio.create_task(self._restart_audio_after_navigation())
                         
         await self._shutdown()

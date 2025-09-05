@@ -46,3 +46,6 @@ PDF_FILTER_FOOTNOTES = True  # Filter page numbers and footnotes in bottom margi
 PDF_HEADER_TOP_MARGIN = 0.1  # Top 10% of page considered header area
 PDF_FOOTNOTE_BOTTOM_MARGIN = 0.9  # Bottom 10% of page considered footnote area
 PDF_HEADER_REPETITION_THRESHOLD = 0.8  # Text must appear on 80% of pages to be considered repeated header
+
+# UI settings
+SMOOTH_SCROLLING_ENABLED = True  # Enable smooth scrolling for keyboard navigation
