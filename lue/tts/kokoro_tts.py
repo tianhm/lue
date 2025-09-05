@@ -179,9 +179,6 @@ class KokoroTTS(TTSBase):
         
         def _blocking_generate():
             try:
-                # Split text into words for timing calculation
-                words = text.split()
-                
                 # Generate audio with timing information
                 results = list(self.pipeline(text, voice=self.voice, split_pattern=None))
                 
@@ -191,19 +188,45 @@ class KokoroTTS(TTSBase):
                     full_audio = self.np.concatenate(audio_segments)
                     self.sf.write(output_path, full_audio, 24000)
                     
-                    # Extract timing information from pred_dur tensors
+                    # Extract precise timing information from tokens
                     word_timings = []
-                    current_time = 0.0
                     
-                    # For simplicity, we'll distribute the total duration evenly across words
-                    # A more sophisticated approach would use the pred_dur information
+                    # Process each result to extract word-level timing
+                    for result in results:
+                        if hasattr(result, 'tokens') and result.tokens:
+                            # Extract timing from tokens
+                            for token in result.tokens:
+                                # Skip punctuation tokens for word timing
+                                if token.tag in ['.', ',', '!', '?', ':', ';']:
+                                    continue
+                                
+                                # Use the actual text and timing from the token
+                                word = token.text
+                                start_time = token.start_ts
+                                end_time = token.end_ts
+                                word_timings.append((word, start_time, end_time))
+                    
+                    # Calculate total duration from audio
                     total_duration = len(full_audio) / 24000.0  # Duration in seconds
-                    time_per_word = total_duration / len(words) if words else 0
                     
-                    for i, word in enumerate(words):
-                        start_time = i * time_per_word
-                        end_time = (i + 1) * time_per_word
-                        word_timings.append((word, start_time, end_time))
+                    # Validate and adjust timings if needed
+                    if word_timings:
+                        # Ensure timings are sequential and continuous
+                        adjusted_timings = []
+                        for i, (word, start_time, end_time) in enumerate(word_timings):
+                            # For the first word, ensure it starts at 0
+                            if i == 0:
+                                start_time = max(0.0, start_time)
+                            # For subsequent words, ensure continuity
+                            else:
+                                prev_end_time = adjusted_timings[-1][2]
+                                # Ensure no gaps or overlaps
+                                start_time = prev_end_time
+                                end_time = max(start_time, end_time)
+                            
+                            adjusted_timings.append((word, start_time, end_time))
+                        
+                        word_timings = adjusted_timings
                     
                     return total_duration, word_timings
                 else:

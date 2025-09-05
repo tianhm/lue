@@ -86,13 +86,19 @@ class TTSBase(ABC):
         This is an optional method that TTS implementations can override to provide
         precise word-level timing information for better highlighting accuracy.
         
+        Implementations should extract actual timing data from the TTS engine when available,
+        rather than estimating based on word count. This provides more accurate synchronization
+        between audio playback and word highlighting, especially for sentences with natural
+        pauses and varying word lengths.
+        
         Args:
             text: Text to convert to speech
             output_path: Full path where audio file should be saved
             
         Returns:
             tuple: (audio_duration, word_timings) where word_timings is a list of 
-                   (word, start_time, end_time) tuples in seconds
+                   (word, start_time, end_time) tuples in seconds. Times should be
+                   continuous and sequential for smooth word highlighting.
             
         Raises:
             RuntimeError: If model is not initialized
