@@ -70,6 +70,22 @@ class EdgeTTS(TTSBase):
                 for chunk in audio_chunks:
                     f.write(chunk)
             
+            # Adjust word timings to ensure continuity - end time of one word 
+            # should match start time of the next word
+            if len(word_timings) > 1:
+                adjusted_word_timings = []
+                for i in range(len(word_timings)):
+                    word, start_time, end_time = word_timings[i]
+                    # For all words except the last one, use the start time of the next word as end time
+                    if i < len(word_timings) - 1:
+                        next_start_time = word_timings[i + 1][1]
+                        adjusted_end_time = next_start_time
+                    else:
+                        # For the last word, keep the original end time
+                        adjusted_end_time = end_time
+                    adjusted_word_timings.append((word, start_time, adjusted_end_time))
+                word_timings = adjusted_word_timings
+            
             # Calculate total audio duration from word timings
             audio_duration = max([end for _, _, end in word_timings]) if word_timings else 0
             

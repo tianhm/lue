@@ -998,12 +998,17 @@ class Lue:
                         if hasattr(self, 'current_word_timings') and self.current_word_timings:
                             # Find the word that should be highlighted based on precise timing
                             for i, (word, start_time, end_time) in enumerate(self.current_word_timings):
+                                # Check if current time falls within this word's timing
                                 if adjusted_elapsed >= start_time and adjusted_elapsed < end_time:
                                     current_word_idx = i
                                     break
                             # If we've passed all words, highlight the last one
                             else:
-                                current_word_idx = len(self.current_word_timings) - 1
+                                if self.current_word_timings:
+                                    # Only highlight the last word if we've actually finished the sentence
+                                    sentence_duration = max([end for _, _, end in self.current_word_timings])
+                                    if adjusted_elapsed >= sentence_duration:
+                                        current_word_idx = len(self.current_word_timings) - 1
                         else:
                             # Estimate time per word (simple equal distribution)
                             time_per_word = self.current_sentence_duration / total_words
