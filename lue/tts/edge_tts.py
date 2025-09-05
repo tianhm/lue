@@ -37,6 +37,48 @@ class EdgeTTS(TTSBase):
             logging.error("'edge-tts' is not installed.")
             return False
 
+    async def generate_audio_with_timing(self, text: str, output_path: str):
+        """
+        Generates audio from text using edge-tts and saves it to a file,
+        returning word timing information.
+        
+        Returns:
+            tuple: (audio_duration, word_timings) where word_timings is a list of 
+                   (word, start_time, end_time) tuples in seconds
+        """
+        if not self.initialized:
+            raise RuntimeError("Edge TTS has not been initialized.")
+        
+        try:
+            communicate = self.edge_tts.Communicate(text, self.voice, boundary="WordBoundary")
+            
+            # Collect word timing information
+            word_timings = []
+            audio_chunks = []
+            
+            async for chunk in communicate.stream():
+                if chunk['type'] == 'WordBoundary':
+                    # Convert from 100-nanosecond units to seconds
+                    start_time = chunk['offset'] / 10000000.0
+                    end_time = (chunk['offset'] + chunk['duration']) / 10000000.0
+                    word_timings.append((chunk['text'], start_time, end_time))
+                elif chunk['type'] == 'audio':
+                    audio_chunks.append(chunk['data'])
+            
+            # Save audio to file
+            with open(output_path, 'wb') as f:
+                for chunk in audio_chunks:
+                    f.write(chunk)
+            
+            # Calculate total audio duration from word timings
+            audio_duration = max([end for _, _, end in word_timings]) if word_timings else 0
+            
+            return audio_duration, word_timings
+            
+        except Exception as e:
+            logging.error(f"Edge TTS audio generation failed for text: '{text[:50]}...'", exc_info=True)
+            raise e
+
     async def generate_audio(self, text: str, output_path: str):
         """Generates audio from text using edge-tts and saves it to a file."""
         if not self.initialized:

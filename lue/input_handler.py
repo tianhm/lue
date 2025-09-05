@@ -123,6 +123,10 @@ def process_input(reader):
                 cmd = 'decrease_speed'
             elif data == '.':
                 cmd = 'increase_speed'
+            elif data == 's':
+                cmd = 'toggle_sentence_highlight'
+            elif data == 'w':
+                cmd = 'toggle_word_highlight'
             
             if cmd:
                 reader.loop.call_soon_threadsafe(reader._post_command_sync, cmd)

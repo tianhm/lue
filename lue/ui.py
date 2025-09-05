@@ -65,6 +65,7 @@ class UIColors:
     # Text content colors
     TEXT_NORMAL = "white"      # Normal reading text
     TEXT_HIGHLIGHT = "bold magenta" # Current sentence highlight
+    WORD_HIGHLIGHT = "bold yellow"  # Current word highlight
     SELECTION_HIGHLIGHT = "reverse" # Text selection highlight
     
     # Progress bar colors
@@ -211,54 +212,67 @@ def get_visible_content(reader):
     width, height = get_terminal_size()
     available_height = max(1, height - 4)
     available_width = max(20, width - 10)
-    
+
     start_line = int(reader.scroll_offset)
     end_line = min(len(reader.document_lines), start_line + available_height)
-    
+
     visible_lines = []
     current_paragraph_key = (reader.ui_chapter_idx, reader.ui_paragraph_idx)
-    
+
     highlighted_paragraph_lines = None
     if current_paragraph_key in reader.paragraph_line_ranges:
         para_start, para_end = reader.paragraph_line_ranges[current_paragraph_key]
         paragraph = reader.chapters[reader.ui_chapter_idx][reader.ui_paragraph_idx]
         sentences = content_parser.split_into_sentences(paragraph)
         highlighted_text = Text(justify="left", no_wrap=False)
-        
+
         for sent_idx, sentence in enumerate(sentences):
-            style = COLORS.TEXT_HIGHLIGHT if sent_idx == reader.ui_sentence_idx else COLORS.TEXT_NORMAL
-            highlighted_text.append(sentence, style=style)
+            if sent_idx == reader.ui_sentence_idx and config.SENTENCE_HIGHLIGHTING_ENABLED:
+                # Apply word-level highlighting within the current sentence
+                if config.WORD_HIGHLIGHTING_ENABLED and hasattr(reader, 'ui_word_idx'):
+                    words = sentence.split()
+                    for word_idx, word in enumerate(words):
+                        if word_idx == reader.ui_word_idx:
+                            highlighted_text.append(word, style=COLORS.WORD_HIGHLIGHT)
+                        else:
+                            highlighted_text.append(word, style=COLORS.TEXT_HIGHLIGHT)
+                        if word_idx < len(words) - 1:
+                            highlighted_text.append(" ", style=COLORS.TEXT_HIGHLIGHT)
+                else:
+                    highlighted_text.append(sentence, style=COLORS.TEXT_HIGHLIGHT)
+            else:
+                highlighted_text.append(sentence, style=COLORS.TEXT_NORMAL)
             if sent_idx < len(sentences) - 1:
                 highlighted_text.append(" ", style=COLORS.TEXT_NORMAL)
-        
+
         highlighted_paragraph_lines = highlighted_text.wrap(reader.console, available_width)
-    
+
     for i in range(start_line, end_line):
         if i < len(reader.document_lines):
             line = reader.document_lines[i]
-            
+
             # Apply current theme text color
             line = _apply_current_text_color(line)
-            
-            if (i in reader.line_to_position and 
+
+            if (i in reader.line_to_position and
                 reader.line_to_position[i][:2] == current_paragraph_key and
                 highlighted_paragraph_lines is not None):
-                
+
                 para_start, para_end = reader.paragraph_line_ranges[current_paragraph_key]
                 line_offset = i - para_start
-                
+
                 if 0 <= line_offset < len(highlighted_paragraph_lines):
                     line = highlighted_paragraph_lines[line_offset]
-            
+
             line = _apply_selection_highlighting(reader, line, i)
-            
+
             visible_lines.append(line)
         else:
             visible_lines.append(Text("", style=COLORS.TEXT_NORMAL))
-    
+
     if len(visible_lines) > available_height:
         visible_lines = visible_lines[:available_height]
-    
+
     return visible_lines
 
 def _apply_selection_highlighting(reader, line, line_index):
@@ -446,6 +460,7 @@ async def display_ui(reader):
             rounded_scroll = round(reader.scroll_offset, 1)
             current_state = (
                 reader.ui_chapter_idx, reader.ui_paragraph_idx, reader.ui_sentence_idx,
+                getattr(reader, 'ui_word_idx', 0),  # Add word index to trigger UI updates
                 rounded_scroll, reader.is_paused, int(progress_percent),
                 width, height, reader.auto_scroll_enabled, reader.selection_active,
                 reader.selection_start, reader.selection_end,

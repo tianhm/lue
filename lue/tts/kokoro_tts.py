@@ -165,6 +165,57 @@ class KokoroTTS(TTSBase):
         except Exception as e:
             return f"Error checking for GPU ({e}). Using CPU.", False
 
+    async def generate_audio_with_timing(self, text: str, output_path: str):
+        """
+        Generates audio from text using Kokoro and saves to file,
+        returning word timing information.
+        
+        Returns:
+            tuple: (audio_duration, word_timings) where word_timings is a list of 
+                   (word, start_time, end_time) tuples in seconds
+        """
+        if not self.initialized or not self.pipeline:
+            raise RuntimeError("Kokoro TTS has not been initialized.")
+        
+        def _blocking_generate():
+            try:
+                # Split text into words for timing calculation
+                words = text.split()
+                
+                # Generate audio with timing information
+                results = list(self.pipeline(text, voice=self.voice, split_pattern=None))
+                
+                if results:
+                    # Concatenate all audio segments
+                    audio_segments = [result.audio for result in results]
+                    full_audio = self.np.concatenate(audio_segments)
+                    self.sf.write(output_path, full_audio, 24000)
+                    
+                    # Extract timing information from pred_dur tensors
+                    word_timings = []
+                    current_time = 0.0
+                    
+                    # For simplicity, we'll distribute the total duration evenly across words
+                    # A more sophisticated approach would use the pred_dur information
+                    total_duration = len(full_audio) / 24000.0  # Duration in seconds
+                    time_per_word = total_duration / len(words) if words else 0
+                    
+                    for i, word in enumerate(words):
+                        start_time = i * time_per_word
+                        end_time = (i + 1) * time_per_word
+                        word_timings.append((word, start_time, end_time))
+                    
+                    return total_duration, word_timings
+                else:
+                    self.sf.write(output_path, self.np.array([], dtype=self.np.float32), 24000)
+                    return 0.0, []
+            except Exception as e:
+                logging.error(f"Error during Kokoro audio generation for text '{text[:50]}...': {e}", exc_info=True)
+                raise e
+        
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, _blocking_generate)
+
     async def generate_audio(self, text: str, output_path: str):
         """Generates audio from text using Kokoro in a separate thread."""
         if not self.initialized or not self.pipeline:

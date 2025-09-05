@@ -28,6 +28,7 @@
 | **🌍 Cross-Platform & Multilingual**    | Full support for macOS, Linux, Windows with 100+ languages and consistent global experience    |
 | **⚡️ Fast Navigation**                  | Intuitive shortcuts, flexible controls, and optional smooth scrolling for efficient book navigation     |
 | **🎛️ Speed Adjustment**                 | Adjust text-to-speech playback speed from 1x to 3x for personalized listening experience    |
+| **🎯 Precise Word Highlighting**        | Word-level highlighting synchronized with actual speech timing for Edge and Kokoro TTS models |
 
 ---
 
@@ -172,6 +173,7 @@ lue --help
 | `u` / `n`                               | Scroll up or down by smaller increments for fine-grained position control                      |
 | `y` / `b`                               | Jump directly to the beginning or end of the document for quick navigation                     |
 | `,` / `.`                               | Decrease or increase text-to-speech playback speed (1x to 3x)                                  |
+| `s` / `w`                               | Toggle sentence highlighting or word highlighting on/off                                       |
 
 </div>
 

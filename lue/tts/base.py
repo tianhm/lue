@@ -79,6 +79,51 @@ class TTSBase(ABC):
         """
         pass
 
+    async def generate_audio_with_timing(self, text: str, output_path: str):
+        """
+        Generate audio from text and save to file, returning word timing information.
+        
+        This is an optional method that TTS implementations can override to provide
+        precise word-level timing information for better highlighting accuracy.
+        
+        Args:
+            text: Text to convert to speech
+            output_path: Full path where audio file should be saved
+            
+        Returns:
+            tuple: (audio_duration, word_timings) where word_timings is a list of 
+                   (word, start_time, end_time) tuples in seconds
+            
+        Raises:
+            RuntimeError: If model is not initialized
+            Exception: If audio generation fails
+        """
+        # Default implementation falls back to regular audio generation
+        # and estimates timing based on word count
+        import asyncio
+        await self.generate_audio(text, output_path)
+        
+        # Get audio duration
+        from .. import audio
+        duration = await audio.get_audio_duration(output_path)
+        
+        # Estimate timing based on word count
+        words = text.split()
+        if words:
+            # If we couldn't get duration, estimate 0.3 seconds per word
+            if duration is None or duration <= 0:
+                duration = len(words) * 0.3
+            
+            time_per_word = duration / len(words)
+            word_timings = []
+            for i, word in enumerate(words):
+                start_time = i * time_per_word
+                end_time = (i + 1) * time_per_word
+                word_timings.append((word, start_time, end_time))
+            return duration, word_timings
+        else:
+            return duration or 0.0, []
+
     async def warm_up(self):
         """
         Warm up the model to reduce initial latency.

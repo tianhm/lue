@@ -91,6 +91,7 @@ class Lue:
         self.ui_chapter_idx = self.chapter_idx
         self.ui_paragraph_idx = self.paragraph_idx
         self.ui_sentence_idx = self.sentence_idx
+        self.ui_word_idx = 0  # Current word index for word-level highlighting
         
         self.scroll_offset = progress_data["scroll_offset"]
         self.auto_scroll_enabled = progress_data["auto_scroll_enabled"]
@@ -973,6 +974,51 @@ class Lue:
                 logging.error(f"Error in UI update loop: {e}", exc_info=True)
                 await asyncio.sleep(self.ui_update_interval)
 
+    async def _word_update_loop(self):
+        """Update word index during playback based on elapsed time."""
+        while self.running:
+            try:
+                if (not self.is_paused and
+                    hasattr(self, 'current_sentence_words') and
+                    hasattr(self, 'current_sentence_duration') and
+                    hasattr(self, 'current_word_start_time') and
+                    self.current_sentence_words and
+                    self.current_sentence_duration > 0):
+
+                    elapsed = asyncio.get_event_loop().time() - self.current_word_start_time
+                    # Account for playback speed
+                    adjusted_elapsed = elapsed * self.playback_speed
+
+                    # Calculate which word should be highlighted
+                    total_words = len(self.current_sentence_words)
+                    if total_words > 0:
+                        current_word_idx = 0
+                        
+                        # Use precise word timings if available
+                        if hasattr(self, 'current_word_timings') and self.current_word_timings:
+                            # Find the word that should be highlighted based on precise timing
+                            for i, (word, start_time, end_time) in enumerate(self.current_word_timings):
+                                if adjusted_elapsed >= start_time and adjusted_elapsed < end_time:
+                                    current_word_idx = i
+                                    break
+                            # If we've passed all words, highlight the last one
+                            else:
+                                current_word_idx = len(self.current_word_timings) - 1
+                        else:
+                            # Estimate time per word (simple equal distribution)
+                            time_per_word = self.current_sentence_duration / total_words
+                            current_word_idx = min(int(adjusted_elapsed / time_per_word), total_words - 1)
+
+                        # Update word index if it changed
+                        if current_word_idx != self.ui_word_idx:
+                            self.ui_word_idx = current_word_idx
+
+                await asyncio.sleep(0.05)  # Update at 20Hz
+            except asyncio.CancelledError:
+                break
+            except Exception:
+                await asyncio.sleep(0.05)
+
     async def _shutdown(self):
         self.running = False
         signal.signal(signal.SIGWINCH, signal.SIG_DFL)
@@ -980,13 +1026,13 @@ class Lue:
         signal.signal(signal.SIGTERM, signal.SIG_DFL)
         
         # Cancel all tasks including pending restart task and pause toggle task
-        tasks_to_cancel = [self.smooth_scroll_task, self.ui_update_task, self.pending_restart_task, self.current_pause_toggle_task]
+        tasks_to_cancel = [self.smooth_scroll_task, self.ui_update_task, self.word_update_task, self.pending_restart_task, self.current_pause_toggle_task]
         for task in tasks_to_cancel:
             if task and not task.done():
                 task.cancel()
-                try: 
+                try:
                     await asyncio.wait_for(task, timeout=1.0)
-                except (asyncio.CancelledError, asyncio.TimeoutError): 
+                except (asyncio.CancelledError, asyncio.TimeoutError):
                     pass
         
         await audio.stop_and_clear_audio(self)
@@ -1044,6 +1090,7 @@ class Lue:
         if not self.chapters or not self.chapters[0]: return
             
         self.ui_update_task = asyncio.create_task(self._ui_update_loop())
+        self.word_update_task = asyncio.create_task(self._word_update_loop())
         
         await audio.play_from_current_position(self)
         
@@ -1181,6 +1228,14 @@ class Lue:
                     # Restart audio with new speed if currently playing
                     if not self.is_paused and self.tts_model:
                         self.pending_restart_task = asyncio.create_task(self._restart_audio_after_navigation())
+            elif cmd == 'toggle_sentence_highlight':
+                config.SENTENCE_HIGHLIGHTING_ENABLED = not config.SENTENCE_HIGHLIGHTING_ENABLED
+                # Force immediate UI update
+                asyncio.create_task(ui.display_ui(self))
+            elif cmd == 'toggle_word_highlight':
+                config.WORD_HIGHLIGHTING_ENABLED = not config.WORD_HIGHLIGHTING_ENABLED
+                # Force immediate UI update
+                asyncio.create_task(ui.display_ui(self))
             elif 'next' in cmd or 'prev' in cmd:
                 if config.SMOOTH_SCROLLING_ENABLED:
                     self._handle_navigation_smooth(cmd)
