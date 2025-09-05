@@ -68,12 +68,14 @@ async def main():
     )
     
     if available_tts:
+        # Add "none" option to available TTS choices
+        tts_choices = ["none"] + available_tts
         parser.add_argument(
             "-t",
             "--tts",
-            choices=available_tts,
+            choices=tts_choices,
             default=default_tts,
-            help=f"Select the Text-to-Speech model (default: {default_tts})",
+            help=f"Select the Text-to-Speech model. Use 'none' to disable TTS (default: {default_tts})",
         )
         parser.add_argument(
             "-v",
@@ -133,7 +135,7 @@ async def main():
             sys.exit(1)
 
     tts_instance = None
-    if available_tts and hasattr(args, 'tts') and args.tts:
+    if available_tts and hasattr(args, 'tts') and args.tts and args.tts != "none":
         voice = args.voice if hasattr(args, 'voice') else None
         lang = args.lang if hasattr(args, 'lang') else None
         tts_instance = tts_manager.create_model(args.tts, console, voice=voice, lang=lang)
@@ -152,7 +154,7 @@ async def main():
         tty.setcbreak(sys.stdin.fileno())
         
         initialized = await reader.initialize_tts()
-        if not initialized and hasattr(args, 'tts') and args.tts:
+        if not initialized and hasattr(args, 'tts') and args.tts and args.tts != "none":
             console.print(f"[bold yellow]Warning: TTS model '{args.tts}' "
                          "failed to initialize and has been disabled.[/bold yellow]")
 
