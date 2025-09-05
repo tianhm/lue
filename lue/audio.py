@@ -24,6 +24,10 @@ def clean_tts_text(text: str) -> str:
     # This pattern matches punctuation that is surrounded by whitespace or at string boundaries
     text = re.sub(r'(?:^|\s)[.,:;!?]+(?=\s|$)', ' ', text)
     
+    # Remove standalone dashes that are followed by quotation marks
+    # This prevents TTS engines from reading "-" as "dash" in cases like: -" 
+    text = re.sub(r'(?:^|\s)-(?=")', ' ', text)
+    
     # Clean up any extra whitespace that might result from removing punctuation
     text = re.sub(r'\s+', ' ', text).strip()
     
