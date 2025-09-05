@@ -3,7 +3,6 @@
 <img src="https://github.com/superstarryeyes/lue/blob/main/images/logo.png?raw=true" alt="Lue Logo" width="70%" />
 
 ### Lue - Terminal eBook Reader with Text-to-Speech
-
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey)](https://github.com/superstarryeyes/lue)
@@ -135,7 +134,7 @@ lue path/to/your/book.epub
 # Launch without arguments to open the last book you were reading
 lue
 
-# Use specific TTS model  
+# Use specific TTS model (edge/kokoro/none) 
 lue --tts kokoro path/to/your/book.epub
 
 # Use a specific voice (full list at VOICES.md)
