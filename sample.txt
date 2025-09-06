@@ -23,7 +23,12 @@ Chapter 5: Speed Adjustment
 Lue allows you to adjust the text-to-speech playback speed to match your listening preference. You can increase the speed up to 3x faster. To increase the playback speed, press the period key. Each press will increase the speed incrementally. To decrease the playback speed, press the comma key. Each press will decrease the speed back down to the normal 1x speed.
 
 
-Chapter 6: Ending the Session
+Chapter 6: Highlighting Controls
+
+There are two levels of text highlighting to help you follow along with the narration: sentence-level highlighting and word-level highlighting. To toggle sentence highlighting on or off, press the "s" key. To toggle word highlighting on or off, press the "w" key. You can use both highlighting modes simultaneously, or disable either one based on your preference.
+
+
+Chapter 7: Ending the Session
 
 When you are ready to stop reading, press "q" to quit. Your place and your reading mode will be saved automatically, so you can resume later without losing your spot.
 
