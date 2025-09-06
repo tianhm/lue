@@ -1000,9 +1000,13 @@ class Lue:
                             if hasattr(self, 'current_word_mapping') and self.current_word_mapping:
                                 # Find which TTS word should be highlighted based on timing
                                 tts_word_idx = None
+                                tts_word_start = None
+                                tts_word_end = None
                                 for i, (word, start_time, end_time) in enumerate(self.current_word_timings):
                                     if adjusted_elapsed >= start_time and adjusted_elapsed < end_time:
                                         tts_word_idx = i
+                                        tts_word_start = start_time
+                                        tts_word_end = end_time
                                         break
                                 
                                 # If we've passed all TTS words, use the last one
@@ -1010,14 +1014,30 @@ class Lue:
                                     sentence_duration = max([end for _, _, end in self.current_word_timings])
                                     if adjusted_elapsed >= sentence_duration:
                                         tts_word_idx = len(self.current_word_timings) - 1
+                                        _, tts_word_start, tts_word_end = self.current_word_timings[tts_word_idx]
                                 
-                                # Map TTS word index back to original word index
+                                # Map TTS word index back to original word index with sub-word timing
                                 if tts_word_idx is not None:
-                                    # Find the original word that maps to this TTS word
+                                    # Find all original words that map to this TTS word
+                                    mapped_orig_words = []
                                     for orig_idx, mapped_tts_idx in enumerate(self.current_word_mapping):
                                         if mapped_tts_idx == tts_word_idx:
-                                            current_word_idx = orig_idx
-                                            break
+                                            mapped_orig_words.append(orig_idx)
+                                    
+                                    if mapped_orig_words:
+                                        if len(mapped_orig_words) == 1:
+                                            # Only one original word maps to this TTS word
+                                            current_word_idx = mapped_orig_words[0]
+                                        else:
+                                            # Multiple original words map to this TTS word
+                                            # Distribute the TTS word duration among the original words
+                                            tts_duration = tts_word_end - tts_word_start
+                                            time_per_orig_word = tts_duration / len(mapped_orig_words)
+                                            elapsed_in_tts_word = adjusted_elapsed - tts_word_start
+                                            
+                                            # Find which original word should be highlighted
+                                            sub_word_idx = min(int(elapsed_in_tts_word / time_per_orig_word), len(mapped_orig_words) - 1)
+                                            current_word_idx = mapped_orig_words[sub_word_idx]
                                     else:
                                         # Fallback: use the TTS word index directly if no mapping found
                                         current_word_idx = min(tts_word_idx, total_words - 1)
