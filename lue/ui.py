@@ -227,31 +227,40 @@ def get_visible_content(reader):
         highlighted_text = Text(justify="left", no_wrap=False)
 
         for sent_idx, sentence in enumerate(sentences):
-            if sent_idx == reader.ui_sentence_idx and config.SENTENCE_HIGHLIGHTING_ENABLED:
-                # Apply word-level highlighting within the current sentence
-                if config.WORD_HIGHLIGHTING_ENABLED and hasattr(reader, 'ui_word_idx'):
-                    # Preserve leading whitespace from the sentence, which contains paragraph indentation
-                    leading_whitespace = ""
-                    if sentence:
-                        match = re.match(r"^(\s+)", sentence)
-                        if match:
-                            leading_whitespace = match.group(1)
-                    
-                    if leading_whitespace:
-                        highlighted_text.append(leading_whitespace, style=COLORS.TEXT_HIGHLIGHT)
-                        
-                    words = sentence.lstrip().split()
-                    for word_idx, word in enumerate(words):
-                        if word_idx == reader.ui_word_idx:
-                            highlighted_text.append(word, style=COLORS.WORD_HIGHLIGHT)
-                        else:
-                            highlighted_text.append(word, style=COLORS.TEXT_HIGHLIGHT)
-                        if word_idx < len(words) - 1:
-                            highlighted_text.append(" ", style=COLORS.TEXT_HIGHLIGHT)
-                else:
-                    highlighted_text.append(sentence, style=COLORS.TEXT_HIGHLIGHT)
+            is_current_sentence = sent_idx == reader.ui_sentence_idx
+            
+            # Determine the base style for this sentence
+            if is_current_sentence and config.SENTENCE_HIGHLIGHTING_ENABLED:
+                base_style = COLORS.TEXT_HIGHLIGHT
             else:
-                highlighted_text.append(sentence, style=COLORS.TEXT_NORMAL)
+                base_style = COLORS.TEXT_NORMAL
+            
+            # Apply word-level highlighting if enabled and this is the current sentence
+            if (is_current_sentence and config.WORD_HIGHLIGHTING_ENABLED and 
+                hasattr(reader, 'ui_word_idx')):
+                
+                # Preserve leading whitespace from the sentence, which contains paragraph indentation
+                leading_whitespace = ""
+                if sentence:
+                    match = re.match(r"^(\s+)", sentence)
+                    if match:
+                        leading_whitespace = match.group(1)
+                
+                if leading_whitespace:
+                    highlighted_text.append(leading_whitespace, style=base_style)
+                    
+                words = sentence.lstrip().split()
+                for word_idx, word in enumerate(words):
+                    if word_idx == reader.ui_word_idx:
+                        highlighted_text.append(word, style=COLORS.WORD_HIGHLIGHT)
+                    else:
+                        highlighted_text.append(word, style=base_style)
+                    if word_idx < len(words) - 1:
+                        highlighted_text.append(" ", style=base_style)
+            else:
+                # No word highlighting, just apply the base style to the entire sentence
+                highlighted_text.append(sentence, style=base_style)
+            
             if sent_idx < len(sentences) - 1:
                 highlighted_text.append(" ", style=COLORS.TEXT_NORMAL)
 
