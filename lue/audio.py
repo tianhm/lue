@@ -10,6 +10,72 @@ ABBREVIATION_PATTERN = r'\b(Mr|Mrs|Ms|Dr|Prof|Rev|Hon|Jr|Sr|Cpl|Sgt|Gen|Col|Capt
 INITIAL_PATTERN = r'\b([A-Z])\.(?=\s[A-Z])'
 
 
+def _create_word_mapping(original_words, tts_word_timings):
+    """
+    Create a mapping from original word indices to TTS word timing indices.
+    This handles cases where TTS combines words (e.g., "Chapter 1" -> "Chapter 1").
+    
+    Returns a list where index i contains the TTS timing index for original word i,
+    or None if the original word is part of a combined TTS word.
+    """
+    if not original_words or not tts_word_timings:
+        return None
+    
+    # Extract just the text from TTS timings
+    tts_words = [word for word, _, _ in tts_word_timings]
+    
+    # If counts match, create simple 1:1 mapping
+    if len(original_words) == len(tts_words):
+        return list(range(len(original_words)))
+    
+    # Handle mismatched counts by trying to map words intelligently
+    mapping = []
+    tts_index = 0
+    
+    for orig_index, orig_word in enumerate(original_words):
+        if tts_index >= len(tts_words):
+            # No more TTS words, map to the last one
+            mapping.append(len(tts_words) - 1)
+            continue
+            
+        tts_word = tts_words[tts_index]
+        
+        # Check if the original word is contained in the current TTS word
+        # Remove punctuation for comparison
+        orig_clean = orig_word.strip('.,!?;:"()[]{}')
+        tts_clean = tts_word.strip('.,!?;:"()[]{}')
+        
+        if orig_clean.lower() in tts_clean.lower():
+            # This original word is part of the current TTS word
+            mapping.append(tts_index)
+            
+            # Check if this TTS word contains multiple original words
+            # by looking ahead to see if the next original word is also in this TTS word
+            if (orig_index + 1 < len(original_words) and 
+                tts_index < len(tts_words)):
+                next_orig = original_words[orig_index + 1].strip('.,!?;:"()[]{}')
+                if next_orig.lower() not in tts_clean.lower():
+                    # Next original word is not in this TTS word, move to next TTS word
+                    tts_index += 1
+        else:
+            # Try to find the original word in subsequent TTS words
+            found = False
+            for look_ahead in range(tts_index, min(tts_index + 3, len(tts_words))):
+                look_ahead_tts = tts_words[look_ahead].strip('.,!?;:"()[]{}')
+                if orig_clean.lower() in look_ahead_tts.lower():
+                    mapping.append(look_ahead)
+                    tts_index = look_ahead + 1
+                    found = True
+                    break
+            
+            if not found:
+                # Fallback: map to current TTS word
+                mapping.append(tts_index)
+                tts_index += 1
+    
+    return mapping
+
+
 def clean_tts_text(text: str) -> str:
     """
     Removes periods from specific English abbreviations and single initials
@@ -259,11 +325,14 @@ async def _player_loop(reader):
                     reader.current_sentence_duration = timing_info.get("speech_duration") or duration
                     reader.current_word_start_time = asyncio.get_event_loop().time()
                     
-                    # Store precise word timings if available
+                    # Store precise word timings if available and create word mapping
                     if word_timings:
                         reader.current_word_timings = word_timings
+                        # Create a mapping from original words to TTS word timings
+                        reader.current_word_mapping = _create_word_mapping(reader.current_sentence_words, word_timings)
                     else:
                         reader.current_word_timings = None
+                        reader.current_word_mapping = None
                 except RuntimeError:
                     reader.audio_queue.task_done()
                     break
