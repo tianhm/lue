@@ -996,19 +996,45 @@ class Lue:
                         
                         # Use precise word timings if available
                         if hasattr(self, 'current_word_timings') and self.current_word_timings:
-                            # Find the word that should be highlighted based on precise timing
-                            for i, (word, start_time, end_time) in enumerate(self.current_word_timings):
-                                # Check if current time falls within this word's timing
-                                if adjusted_elapsed >= start_time and adjusted_elapsed < end_time:
-                                    current_word_idx = i
-                                    break
-                            # If we've passed all words, highlight the last one
-                            else:
-                                if self.current_word_timings:
-                                    # Only highlight the last word if we've actually finished the sentence
+                            # Use word mapping if available to handle TTS word boundary mismatches
+                            if hasattr(self, 'current_word_mapping') and self.current_word_mapping:
+                                # Find which TTS word should be highlighted based on timing
+                                tts_word_idx = None
+                                for i, (word, start_time, end_time) in enumerate(self.current_word_timings):
+                                    if adjusted_elapsed >= start_time and adjusted_elapsed < end_time:
+                                        tts_word_idx = i
+                                        break
+                                
+                                # If we've passed all TTS words, use the last one
+                                if tts_word_idx is None and self.current_word_timings:
                                     sentence_duration = max([end for _, _, end in self.current_word_timings])
                                     if adjusted_elapsed >= sentence_duration:
-                                        current_word_idx = len(self.current_word_timings) - 1
+                                        tts_word_idx = len(self.current_word_timings) - 1
+                                
+                                # Map TTS word index back to original word index
+                                if tts_word_idx is not None:
+                                    # Find the original word that maps to this TTS word
+                                    for orig_idx, mapped_tts_idx in enumerate(self.current_word_mapping):
+                                        if mapped_tts_idx == tts_word_idx:
+                                            current_word_idx = orig_idx
+                                            break
+                                    else:
+                                        # Fallback: use the TTS word index directly if no mapping found
+                                        current_word_idx = min(tts_word_idx, total_words - 1)
+                            else:
+                                # Original logic for direct TTS word timing
+                                for i, (word, start_time, end_time) in enumerate(self.current_word_timings):
+                                    # Check if current time falls within this word's timing
+                                    if adjusted_elapsed >= start_time and adjusted_elapsed < end_time:
+                                        current_word_idx = min(i, total_words - 1)
+                                        break
+                                # If we've passed all words, highlight the last one
+                                else:
+                                    if self.current_word_timings:
+                                        # Only highlight the last word if we've actually finished the sentence
+                                        sentence_duration = max([end for _, _, end in self.current_word_timings])
+                                        if adjusted_elapsed >= sentence_duration:
+                                            current_word_idx = total_words - 1
                         else:
                             # Estimate time per word (simple equal distribution)
                             time_per_word = self.current_sentence_duration / total_words
