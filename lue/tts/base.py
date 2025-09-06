@@ -81,54 +81,73 @@ class TTSBase(ABC):
 
     async def generate_audio_with_timing(self, text: str, output_path: str):
         """
-        Generate audio from text and save to file, returning word timing information.
+        Generate audio from text and save to file, returning processed timing information.
         
-        This is an optional method that TTS implementations can override to provide
-        precise word-level timing information for better highlighting accuracy.
-        
-        Implementations should extract actual timing data from the TTS engine when available,
-        rather than estimating based on word count. This provides more accurate synchronization
-        between audio playback and word highlighting, especially for sentences with natural
-        pauses and varying word lengths.
+        This method now uses the centralized timing calculator to process timing data.
+        TTS implementations should override get_raw_timing_data() to provide engine-specific
+        timing information, while this method handles all the processing and adjustments.
         
         Args:
             text: Text to convert to speech
             output_path: Full path where audio file should be saved
             
         Returns:
-            tuple: (audio_duration, word_timings) where word_timings is a list of 
-                   (word, start_time, end_time) tuples in seconds. Times should be
-                   continuous and sequential for smooth word highlighting.
+            dict: Processed timing information containing:
+                - word_timings: List of (word, start_time, end_time) tuples
+                - speech_duration: Duration of speech content
+                - total_duration: Total audio duration
+                - word_mapping: Mapping from original words to TTS timings
             
         Raises:
             RuntimeError: If model is not initialized
             Exception: If audio generation fails
         """
-        # Default implementation falls back to regular audio generation
-        # and estimates timing based on word count
-        import asyncio
+        # Generate audio first
         await self.generate_audio(text, output_path)
         
-        # Get audio duration
-        from .. import audio
+        # Get raw timing data from the TTS implementation
+        raw_timings = await self.get_raw_timing_data(text, output_path)
+        
+        # Get actual audio duration
+        try:
+            from .. import audio
+        except ImportError:
+            # Handle case when running tests or imports from different context
+            import sys
+            import os
+            sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+            import audio
         duration = await audio.get_audio_duration(output_path)
         
-        # Estimate timing based on word count
-        words = text.split()
-        if words:
-            # If we couldn't get duration, estimate 0.3 seconds per word
-            if duration is None or duration <= 0:
-                duration = len(words) * 0.3
+        # Process timing data using the centralized calculator
+        try:
+            from ..timing_calculator import process_tts_timing_data
+        except ImportError:
+            # Handle case when running tests or imports from different context
+            import sys
+            import os
+            sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+            import timing_calculator
+            process_tts_timing_data = timing_calculator.process_tts_timing_data
+        return process_tts_timing_data(text, raw_timings, duration)
+
+    async def get_raw_timing_data(self, text: str, output_path: str):
+        """
+        Get raw timing data from the TTS engine.
+        
+        This method should be overridden by TTS implementations that can provide
+        precise timing information. The default implementation returns empty list,
+        which will cause the timing calculator to estimate timings.
+        
+        Args:
+            text: Text that was converted to speech
+            output_path: Path to the generated audio file
             
-            time_per_word = duration / len(words)
-            word_timings = []
-            for i, word in enumerate(words):
-                start_time = i * time_per_word
-                end_time = (i + 1) * time_per_word
-                word_timings.append((word, start_time, end_time))
-            return duration, word_timings
-        else:
-            return duration or 0.0, []
+        Returns:
+            List of (word, start_time, end_time) tuples with raw timing data from TTS engine,
+            or empty list if no timing data is available
+        """
+        return []
 
     async def warm_up(self):
         """

@@ -165,14 +165,12 @@ class KokoroTTS(TTSBase):
         except Exception as e:
             return f"Error checking for GPU ({e}). Using CPU.", False
 
-    async def generate_audio_with_timing(self, text: str, output_path: str):
+    async def get_raw_timing_data(self, text: str, output_path: str):
         """
-        Generates audio from text using Kokoro and saves to file,
-        returning word timing information.
+        Get raw word timing data from Kokoro TTS.
         
         Returns:
-            tuple: (audio_duration, word_timings) where word_timings is a list of 
-                   (word, start_time, end_time) tuples in seconds
+            List of (word, start_time, end_time) tuples with raw timing data from Kokoro TTS
         """
         if not self.initialized or not self.pipeline:
             raise RuntimeError("Kokoro TTS has not been initialized.")
@@ -206,38 +204,47 @@ class KokoroTTS(TTSBase):
                                 end_time = token.end_ts
                                 word_timings.append((word, start_time, end_time))
                     
-                    # Calculate total duration from audio
-                    total_duration = len(full_audio) / 24000.0  # Duration in seconds
-                    
-                    # Validate and adjust timings if needed
-                    if word_timings:
-                        # Ensure timings are sequential and continuous
-                        adjusted_timings = []
-                        for i, (word, start_time, end_time) in enumerate(word_timings):
-                            # For the first word, ensure it starts at 0
-                            if i == 0:
-                                start_time = max(0.0, start_time)
-                            # For subsequent words, ensure continuity
-                            else:
-                                prev_end_time = adjusted_timings[-1][2]
-                                # Ensure no gaps or overlaps
-                                start_time = prev_end_time
-                                end_time = max(start_time, end_time)
-                            
-                            adjusted_timings.append((word, start_time, end_time))
-                        
-                        word_timings = adjusted_timings
-                    
-                    return total_duration, word_timings
+                    return word_timings
                 else:
                     self.sf.write(output_path, self.np.array([], dtype=self.np.float32), 24000)
-                    return 0.0, []
+                    return []
             except Exception as e:
                 logging.error(f"Error during Kokoro audio generation for text '{text[:50]}...': {e}", exc_info=True)
                 raise e
         
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, _blocking_generate)
+
+    async def generate_audio_with_timing(self, text: str, output_path: str):
+        """
+        Generate audio with timing using the centralized timing calculator.
+        
+        This method leverages Kokoro TTS's token-level timing information
+        through get_raw_timing_data() and processes it with the timing calculator.
+        """
+        # Get raw timing data (which also generates the audio)
+        raw_timings = await self.get_raw_timing_data(text, output_path)
+        
+        # Get actual audio duration
+        try:
+            from .. import audio
+        except ImportError:
+            import sys
+            import os
+            sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+            import audio
+        duration = await audio.get_audio_duration(output_path)
+        
+        # Process timing data using the centralized calculator
+        try:
+            from ..timing_calculator import process_tts_timing_data
+        except ImportError:
+            import sys
+            import os
+            sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+            import timing_calculator
+            process_tts_timing_data = timing_calculator.process_tts_timing_data
+        return process_tts_timing_data(text, raw_timings, duration)
 
     async def generate_audio(self, text: str, output_path: str):
         """Generates audio from text using Kokoro in a separate thread."""

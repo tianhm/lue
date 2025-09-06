@@ -10,70 +10,9 @@ ABBREVIATION_PATTERN = r'\b(Mr|Mrs|Ms|Dr|Prof|Rev|Hon|Jr|Sr|Cpl|Sgt|Gen|Col|Capt
 INITIAL_PATTERN = r'\b([A-Z])\.(?=\s[A-Z])'
 
 
-def _create_word_mapping(original_words, tts_word_timings):
-    """
-    Create a mapping from original word indices to TTS word timing indices.
-    This handles cases where TTS combines words (e.g., "Chapter 1" -> "Chapter 1").
-    
-    Returns a list where index i contains the TTS timing index for original word i,
-    or None if the original word is part of a combined TTS word.
-    """
-    if not original_words or not tts_word_timings:
-        return None
-    
-    # Extract just the text from TTS timings
-    tts_words = [word for word, _, _ in tts_word_timings]
-    
-    # If counts match, create simple 1:1 mapping
-    if len(original_words) == len(tts_words):
-        return list(range(len(original_words)))
-    
-    # Handle mismatched counts by trying to map words intelligently
-    mapping = []
-    tts_index = 0
-    
-    for orig_index, orig_word in enumerate(original_words):
-        if tts_index >= len(tts_words):
-            # No more TTS words, map to the last one
-            mapping.append(len(tts_words) - 1)
-            continue
-            
-        tts_word = tts_words[tts_index]
-        
-        # Check if the original word is contained in the current TTS word
-        # Remove punctuation for comparison
-        orig_clean = orig_word.strip('.,!?;:"()[]{}')
-        tts_clean = tts_word.strip('.,!?;:"()[]{}')
-        
-        if orig_clean.lower() in tts_clean.lower():
-            # This original word is part of the current TTS word
-            mapping.append(tts_index)
-            
-            # Check if this TTS word contains multiple original words
-            # by looking ahead to see if the next original word is also in this TTS word
-            if (orig_index + 1 < len(original_words) and 
-                tts_index < len(tts_words)):
-                next_orig = original_words[orig_index + 1].strip('.,!?;:"()[]{}')
-                if next_orig.lower() not in tts_clean.lower():
-                    # Next original word is not in this TTS word, move to next TTS word
-                    tts_index += 1
-        else:
-            # Try to find the original word in subsequent TTS words
-            found = False
-            for look_ahead in range(tts_index, min(tts_index + 3, len(tts_words))):
-                look_ahead_tts = tts_words[look_ahead].strip('.,!?;:"()[]{}')
-                if orig_clean.lower() in look_ahead_tts.lower():
-                    mapping.append(look_ahead)
-                    tts_index = look_ahead + 1
-                    found = True
-                    break
-            
-            if not found:
-                # Fallback: map to current TTS word
-                mapping.append(tts_index)
-                tts_index += 1
-    
-    return mapping
+# Word mapping functionality moved to timing_calculator.py
+# Import it here for backward compatibility
+from .timing_calculator import create_word_mapping as _create_word_mapping
 
 
 def clean_tts_text(text: str) -> str:
@@ -238,13 +177,12 @@ async def _producer_loop(reader):
                 
                 cleaned_text = clean_tts_text(text)
                 
-                word_timings = []
-                speech_duration = None
+                timing_info = None
                 
                 # Use the timing-aware method if available
                 if hasattr(reader.tts_model, 'generate_audio_with_timing'):
                     try:
-                        speech_duration, word_timings = await reader.tts_model.generate_audio_with_timing(cleaned_text, output_filename)
+                        timing_info = await reader.tts_model.generate_audio_with_timing(cleaned_text, output_filename)
                     except Exception:
                         # If timing generation fails, fall back to generating without it
                         await reader.tts_model.generate_audio(cleaned_text, output_filename)
@@ -257,12 +195,10 @@ async def _producer_loop(reader):
                 
                 if not reader.running: break
                 
-                # If timing info is available, store it in a more structured way
-                timing_info = {
-                    "word_timings": word_timings,
-                    "speech_duration": speech_duration,
-                    "total_duration": duration
-                }
+                # If no timing info was generated, create a fallback structure
+                if timing_info is None:
+                    from .timing_calculator import process_tts_timing_data
+                    timing_info = process_tts_timing_data(cleaned_text, [], duration)
                 
                 await asyncio.wait_for(reader.audio_queue.put((output_filename, *producer_pos, duration, timing_info)), timeout=1.0)
                 
@@ -325,11 +261,12 @@ async def _player_loop(reader):
                     reader.current_sentence_duration = timing_info.get("speech_duration") or duration
                     reader.current_word_start_time = asyncio.get_event_loop().time()
                     
-                    # Store precise word timings if available and create word mapping
+                    # Store precise word timings and mapping from timing info
+                    word_timings = timing_info.get("word_timings", [])
                     if word_timings:
                         reader.current_word_timings = word_timings
-                        # Create a mapping from original words to TTS word timings
-                        reader.current_word_mapping = _create_word_mapping(reader.current_sentence_words, word_timings)
+                        # Use the pre-calculated word mapping from timing info
+                        reader.current_word_mapping = timing_info.get("word_mapping")
                     else:
                         reader.current_word_timings = None
                         reader.current_word_mapping = None

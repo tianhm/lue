@@ -37,14 +37,12 @@ class EdgeTTS(TTSBase):
             logging.error("'edge-tts' is not installed.")
             return False
 
-    async def generate_audio_with_timing(self, text: str, output_path: str):
+    async def get_raw_timing_data(self, text: str, output_path: str):
         """
-        Generates audio from text using edge-tts and saves it to a file,
-        returning word timing information.
+        Get raw word timing data from Edge TTS.
         
         Returns:
-            tuple: (audio_duration, word_timings) where word_timings is a list of 
-                   (word, start_time, end_time) tuples in seconds
+            List of (word, start_time, end_time) tuples with raw timing data from Edge TTS
         """
         if not self.initialized:
             raise RuntimeError("Edge TTS has not been initialized.")
@@ -70,30 +68,42 @@ class EdgeTTS(TTSBase):
                 for chunk in audio_chunks:
                     f.write(chunk)
             
-            # Adjust word timings to ensure continuity - end time of one word 
-            # should match start time of the next word
-            if len(word_timings) > 1:
-                adjusted_word_timings = []
-                for i in range(len(word_timings)):
-                    word, start_time, end_time = word_timings[i]
-                    # For all words except the last one, use the start time of the next word as end time
-                    if i < len(word_timings) - 1:
-                        next_start_time = word_timings[i + 1][1]
-                        adjusted_end_time = next_start_time
-                    else:
-                        # For the last word, keep the original end time
-                        adjusted_end_time = end_time
-                    adjusted_word_timings.append((word, start_time, adjusted_end_time))
-                word_timings = adjusted_word_timings
-            
-            # The speech duration is the end time of the last word
-            speech_duration = max([end for _, _, end in word_timings]) if word_timings else 0
-            
-            return speech_duration, word_timings
+            return word_timings
             
         except Exception as e:
             logging.error(f"Edge TTS audio generation failed for text: '{text[:50]}...'", exc_info=True)
             raise e
+
+    async def generate_audio_with_timing(self, text: str, output_path: str):
+        """
+        Generate audio with timing using the centralized timing calculator.
+        
+        This method leverages Edge TTS's precise word boundary information
+        through get_raw_timing_data() and processes it with the timing calculator.
+        """
+        # Get raw timing data (which also generates the audio)
+        raw_timings = await self.get_raw_timing_data(text, output_path)
+        
+        # Get actual audio duration
+        try:
+            from .. import audio
+        except ImportError:
+            import sys
+            import os
+            sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+            import audio
+        duration = await audio.get_audio_duration(output_path)
+        
+        # Process timing data using the centralized calculator
+        try:
+            from ..timing_calculator import process_tts_timing_data
+        except ImportError:
+            import sys
+            import os
+            sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+            import timing_calculator
+            process_tts_timing_data = timing_calculator.process_tts_timing_data
+        return process_tts_timing_data(text, raw_timings, duration)
 
     async def generate_audio(self, text: str, output_path: str):
         """Generates audio from text using edge-tts and saves it to a file."""
