@@ -43,66 +43,54 @@ Your new class must implement the following properties and methods. The `Lue` ap
 
 ### Word-Level Timing (Optional Advanced Feature)
 
-Lue supports word-level highlighting during audio playback, which provides a better reading experience by highlighting each word as it's spoken. This feature requires implementing precise timing information for each word in the generated audio.
+Lue supports word-level highlighting during audio playback, which provides a better reading experience by highlighting each word as it's spoken. The timing logic has been centralized in `lue/timing_calculator.py` to simplify TTS implementations.
 
-To support word-level highlighting, your TTS model should override the `generate_audio_with_timing` method from the `TTSBase` class:
+To support word-level highlighting, your TTS model should override the `get_raw_timing_data` method from the `TTSBase` class:
 
--   `async def generate_audio_with_timing(self, text: str, output_path: str):`
-    -   **Purpose:** Generate audio from text and return precise word timing information.
-    -   **Return Value:** A tuple of `(audio_duration, word_timings)` where:
-        - `audio_duration` is the total duration of the generated audio in seconds
-        - `word_timings` is a list of `(word, start_time, end_time)` tuples, with times in seconds
+-   `async def get_raw_timing_data(self, text: str, output_path: str):`
+    -   **Purpose:** Extract raw word timing data from your TTS engine and generate the audio file.
+    -   **Return Value:** A list of `(word, start_time, end_time)` tuples with raw timing data from your TTS engine
     -   **Implementation Guidelines:**
-        - Extract actual timing data from your TTS engine when available, rather than estimating based on word count
-        - Use the actual text segments provided by the TTS engine to ensure correct handling of punctuation
-        - Ensure continuous timing between words for smooth highlighting progression
-        - Handle any gaps between words by adjusting timings so that the end time of each word (except the last) matches the start time of the next word
-        - Return accurate timing information that matches the generated audio
+        - Generate the audio file and save it to `output_path`
+        - Extract timing data directly from your TTS engine's output
+        - Return the raw timing data without any processing or adjustments
+        - The centralized timing calculator will handle all processing, continuity adjustments, and word mapping
+        - If your TTS engine doesn't provide timing data, return an empty list `[]`
+
+The base class `generate_audio_with_timing()` method automatically:
+- Calls your `get_raw_timing_data()` method
+- Processes the raw timing data using the centralized timing calculator
+- Returns a structured dictionary with processed timing information
+- Handles fallback estimation if no raw timing data is available
 
 Example implementation pattern:
 
 ```python
-async def generate_audio_with_timing(self, text: str, output_path: str):
+async def get_raw_timing_data(self, text: str, output_path: str):
     """
-    Generate audio with precise word timing information.
+    Extract raw word timing data from the TTS engine.
     """
-    # Generate audio and extract timing from the TTS engine
-    # This is a simplified example - actual implementation will vary by engine
-    
-    # Example with a hypothetical TTS engine that provides timing:
+    # Generate audio and extract raw timing from the TTS engine
     result = self.tts_engine.synthesize_with_timing(text, voice=self.voice)
     
     # Save audio to file
     with open(output_path, 'wb') as f:
         f.write(result.audio_data)
     
-    # Extract word timings from engine results
+    # Extract raw word timings from engine results (no processing needed)
     word_timings = []
     for word_info in result.word_timings:
         word_timings.append((
             word_info.text,      # The actual word text
-            word_info.start,     # Start time in seconds
-            word_info.end        # End time in seconds
+            word_info.start,     # Start time in seconds (raw from engine)
+            word_info.end        # End time in seconds (raw from engine)
         ))
     
-    # Adjust timings for continuity if needed
-    if len(word_timings) > 1:
-        adjusted_timings = []
-        for i in range(len(word_timings)):
-            word, start, end = word_timings[i]
-            # Make end time match next word's start time for smooth highlighting
-            if i < len(word_timings) - 1:
-                adjusted_end = word_timings[i + 1][1]  # Next word's start time
-            else:
-                adjusted_end = end  # Keep original end time for last word
-            adjusted_timings.append((word, start, adjusted_end))
-        word_timings = adjusted_timings
-    
-    # Calculate total duration
-    total_duration = max([end for _, _, end in word_timings]) if word_timings else 0
-    
-    return total_duration, word_timings
+    # Return raw timing data - the timing calculator will handle all processing
+    return word_timings
 ```
+
+**Note:** You don't need to implement `generate_audio_with_timing()` unless you have special requirements. The base class implementation automatically uses your `get_raw_timing_data()` method and processes the results through the centralized timing calculator.
 
 ### Code Template
 
@@ -218,48 +206,55 @@ class YourTTSTTS(TTSBase):
         await loop.run_in_executor(None, _blocking_generate)
 
     # Optional: Implement word-level timing for better highlighting accuracy
-    async def generate_audio_with_timing(self, text: str, output_path: str):
+    async def get_raw_timing_data(self, text: str, output_path: str):
         """
-        Generate audio from text and save to file, returning word timing information.
+        Extract raw word timing data from your TTS engine.
         
         This method is optional but recommended for better word highlighting accuracy.
-        If not implemented, the base class provides a default implementation that
-        estimates timing based on word count.
+        If not implemented, the base class will use fallback estimation.
         
         Returns:
-            tuple: (audio_duration, word_timings) where word_timings is a list of 
-                   (word, start_time, end_time) tuples in seconds
+            List of (word, start_time, end_time) tuples with raw timing data from TTS engine,
+            or empty list if no timing data is available
         """
         # TODO: Implement actual timing extraction from your TTS engine
         # The example below shows the structure but should be replaced with
         # actual implementation based on your TTS engine's capabilities.
         
-        # Generate audio (this should be similar to generate_audio)
-        await self.generate_audio(text, output_path)
-        
-        # Extract timing information from your TTS engine
-        # This is where you'd interface with your TTS engine to get actual timing data
-        word_timings = []  # Replace with actual timing extraction
-        
-        # Calculate total duration
-        from .. import audio
-        duration = await audio.get_audio_duration(output_path)
-        
-        # If you couldn't extract timing from the engine, fall back to estimation
-        if not word_timings:
-            # Estimate timing based on word count as a fallback
-            words = text.split()
-            if words:
-                if duration is None or duration <= 0:
-                    duration = len(words) * 0.3  # Estimate 0.3 seconds per word
+        # This is a synchronous function to do the audio generation with timing.
+        def _blocking_generate():
+            try:
+                # TODO: Replace with your library's actual audio generation call that provides timing.
+                # Use self.voice, which was set in __init__
+                # The final audio MUST be saved to the `output_path`.
                 
-                time_per_word = duration / len(words)
-                word_timings = []
-                for i, word in enumerate(words):
-                    start_time = i * time_per_word
-                    end_time = (i + 1) * time_per_word
-                    word_timings.append((word, start_time, end_time))
+                # Example with a hypothetical TTS engine that provides timing:
+                # result = self.client.generate_with_timing(text=text, voice=self.voice)
+                # with open(output_path, "wb") as f:
+                #     f.write(result.audio_data)
+                
+                # Extract raw timing data from your TTS engine
+                # word_timings = []
+                # for word_info in result.word_timings:
+                #     word_timings.append((
+                #         word_info.text,      # The actual word text
+                #         word_info.start,     # Start time in seconds (raw from engine)
+                #         word_info.end        # End time in seconds (raw from engine)
+                #     ))
+                # return word_timings
+                
+                # If your TTS engine doesn't provide timing, fall back to regular generation
+                # and return empty list (the timing calculator will estimate)
+                # TODO: Replace with actual generation
+                pass # Replace with actual generation
+                return []  # Return empty list if no timing available
+                
+            except Exception as e:
+                logging.error(f"Error during YourTTS audio generation: {e}", exc_info=True)
+                raise e
         
-        return duration or 0.0, word_timings
+        # Run the blocking generation in a separate thread.
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, _blocking_generate)
 
 ```
