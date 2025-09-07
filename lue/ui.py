@@ -18,7 +18,7 @@ class UIIcons:
     PAUSED = "⏸"
     
     # Mode icons
-    AUTO_SCROLL = "⚙"
+    AUTO_SCROLL = "▼"
     MANUAL_MODE = "⏹"
     
     # Navigation icons
