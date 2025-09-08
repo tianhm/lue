@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lue-reader"
-version = "0.1.5"
+version = "0.2.0"
 description = "A terminal-based eBook reader with modular text-to-speech capabilities and multi-format support"
 readme = "README.md"
 license = {text = "GPL-3.0"}
 authors = [
-    {name = "Lue Development Team"}
+    {name = "Starry Eyes"}
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
