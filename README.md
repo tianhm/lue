@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://github.com/superstarryeyes/lue/blob/main/images/icon.png?raw=true" alt="Lue Icon" width="50%" />
+<img src="https://github.com/superstarryeyes/lue/blob/main/images/lue-icon.png?raw=true" alt="Lue Icon" width="50%" />
 
 ### Lue - Terminal eBook Reader with Text-to-Speech
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
@@ -11,7 +11,7 @@
 
 [Features](#-features) • [Quick Start](#-quick-start) • [Installation](#-installation) • [Usage](#-usage) • [Development](#-development)
 
-<img src="https://github.com/superstarryeyes/lue/blob/main/images/screenshot.gif" alt="Lue Screenshot" width="100%" />
+<img src="https://github.com/superstarryeyes/lue/blob/main/images/lue-screenshot.gif" alt="Lue Screenshot" width="100%" />
 
 </div>
 
