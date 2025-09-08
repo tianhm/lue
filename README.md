@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://github.com/superstarryeyes/lue/blob/main/images/logo.png?raw=true" alt="Lue Logo" width="70%" />
+<img src="https://github.com/superstarryeyes/lue/blob/main/images/icon.png?raw=true" alt="Lue Icon" width="50%" />
 
 ### Lue - Terminal eBook Reader with Text-to-Speech
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
@@ -11,7 +11,7 @@
 
 [Features](#-features) • [Quick Start](#-quick-start) • [Installation](#-installation) • [Usage](#-usage) • [Development](#-development)
 
-<img src="https://github.com/superstarryeyes/lue/blob/main/images/screenshot.png" alt="Lue Screenshot" width="100%" />
+<img src="https://github.com/superstarryeyes/lue/blob/main/images/screenshot.gif" alt="Lue Screenshot" width="100%" />
 
 </div>
 
@@ -22,13 +22,14 @@
 | **Feature**                             | **Description**                                                                                |
 | --------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | **📖 Multi-Format Support**             | Support for EPUB, PDF, TXT, DOCX, DOC, HTML, RTF, and Markdown with seamless format detection  |
-| **👄 Modular TTS System**               | Edge TTS (default) and Kokoro TTS (local/offline) with extensible architecture for new models |
+| **👄 Modular TTS System**               | Edge TTS (default) and Kokoro TTS (local/offline) with extensible architecture for new models  |
+| **🌍 Cross-Platform & Multilingual**    | Full support for macOS, Linux, Windows with 100+ languages and consistent global experience    |
+| **🎛️ Speed Adjustment**                 | Adjust text-to-speech playback speed from 1x to 3x for personalized listening experience       |
+| **🎯 Precise Word Highlighting**        | Word-level highlighting synchronized with actual speech, improving focus and concentration     |
 | **🌌 Rich Terminal UI**                 | Clean, responsive interface with customizable color themes and full mouse & keyboard support   |
 | **💾 Smart Persistence**                | Automatic progress saving, state restoration, and cross-session continuity for seamless reading|
-| **🌍 Cross-Platform & Multilingual**    | Full support for macOS, Linux, Windows with 100+ languages and consistent global experience    |
 | **⚡️ Fast Navigation**                  | Intuitive shortcuts, flexible controls, and optional smooth scrolling for efficient book navigation     |
-| **🎛️ Speed Adjustment**                 | Adjust text-to-speech playback speed from 1x to 3x for personalized listening experience    |
-| **🎯 Precise Word Highlighting**        | Word-level highlighting synchronized with actual speech timing for Edge and Kokoro TTS models |
+
 
 ---
 
@@ -48,7 +49,7 @@ sudo apt install ffmpeg
 pip install lue-reader
 
 # 3. Start reading!
-python -m lue sample.txt
+lue path/to/your/book.epub 
 ```
 
 > **📝 Note:** Quick start uses Edge TTS (requires internet). For offline capabilities, see [full installation](#-installation).
