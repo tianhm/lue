@@ -587,15 +587,12 @@ async def display_ui(reader):
                 
                 progress_text = f"{title_text} {connecting_line} {percentage_text}"
                 
-                # Create a solid border line for the bottom with proper alignment
-                # Fixed the one-character gap issue by adjusting the width calculation
-                subtitle_width = width - 2  # Panel borders take 2 characters, not 4
-                border_line = ICONS.LINE_SEPARATOR_SHORT * subtitle_width
-                
+                # Create a solid border line for the bottom
+                # Using a simple approach that matches mode 2 behavior
                 book_panel = Panel(
                     book_content,
                     title=f"[{COLORS.PANEL_TITLE}]{progress_text}[/{COLORS.PANEL_TITLE}]",
-                    subtitle=f"[{COLORS.SEPARATORS}]{border_line}[/{COLORS.SEPARATORS}]",
+                    subtitle="",  # Empty subtitle to avoid border issues
                     border_style=COLORS.PANEL_BORDER,
                     padding=(1, 4),  # Same padding as mode 2 for consistency
                     title_align="center",
