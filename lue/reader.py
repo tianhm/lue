@@ -1284,7 +1284,8 @@ class Lue:
                 # Force immediate UI update
                 asyncio.create_task(ui.display_ui(self))
             elif cmd == 'toggle_word_highlight':
-                config.WORD_HIGHLIGHTING_ENABLED = not config.WORD_HIGHLIGHTING_ENABLED
+                # Cycle through word highlighting modes: 0=off, 1=normal, 2=standout
+                config.WORD_HIGHLIGHT_MODE = (config.WORD_HIGHLIGHT_MODE + 1) % 3
                 # Force immediate UI update
                 asyncio.create_task(ui.display_ui(self))
             elif 'next' in cmd or 'prev' in cmd:

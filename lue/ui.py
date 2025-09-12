@@ -237,7 +237,7 @@ def get_visible_content(reader):
                 base_style = COLORS.TEXT_NORMAL
             
             # Apply word-level highlighting if enabled and this is the current sentence
-            if (is_current_sentence and config.WORD_HIGHLIGHTING_ENABLED and 
+            if (is_current_sentence and config.WORD_HIGHLIGHT_MODE > 0 and 
                 hasattr(reader, 'ui_word_idx')):
                 
                 # Preserve leading whitespace from the sentence, which contains paragraph indentation
@@ -253,8 +253,8 @@ def get_visible_content(reader):
                 words = sentence.lstrip().split()
                 for word_idx, word in enumerate(words):
                     if word_idx == reader.ui_word_idx:
-                        # Use standout mode if enabled, otherwise use regular highlighting
-                        word_style = (COLORS.WORD_HIGHLIGHT_STANDOUT if config.STANDOUT_MODE_ENABLED 
+                        # Choose highlighting style based on mode: 1=normal, 2=standout
+                        word_style = (COLORS.WORD_HIGHLIGHT_STANDOUT if config.WORD_HIGHLIGHT_MODE == 2 
                                     else COLORS.WORD_HIGHLIGHT)
                         highlighted_text.append(word, style=word_style)
                     else:
