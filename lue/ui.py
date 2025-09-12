@@ -66,6 +66,7 @@ class UIColors:
     TEXT_NORMAL = "white"      # Normal reading text
     TEXT_HIGHLIGHT = "bold magenta" # Current sentence highlight
     WORD_HIGHLIGHT = "bold yellow"  # Current word highlight
+    WORD_HIGHLIGHT_STANDOUT = "black on bright_yellow"  # Standout mode word highlight
     SELECTION_HIGHLIGHT = "reverse" # Text selection highlight
     
     # Progress bar colors
@@ -252,7 +253,10 @@ def get_visible_content(reader):
                 words = sentence.lstrip().split()
                 for word_idx, word in enumerate(words):
                     if word_idx == reader.ui_word_idx:
-                        highlighted_text.append(word, style=COLORS.WORD_HIGHLIGHT)
+                        # Use standout mode if enabled, otherwise use regular highlighting
+                        word_style = (COLORS.WORD_HIGHLIGHT_STANDOUT if config.STANDOUT_MODE_ENABLED 
+                                    else COLORS.WORD_HIGHLIGHT)
+                        highlighted_text.append(word, style=word_style)
                     else:
                         highlighted_text.append(word, style=base_style)
                     if word_idx < len(words) - 1:

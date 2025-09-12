@@ -53,3 +53,4 @@ SMOOTH_SCROLLING_ENABLED = True  # Enable smooth scrolling for keyboard navigati
 # Highlighting settings
 SENTENCE_HIGHLIGHTING_ENABLED = True  # Enable sentence-level highlighting
 WORD_HIGHLIGHTING_ENABLED = True  # Enable word-level highlighting
+STANDOUT_MODE_ENABLED = True  # Enable standout mode for word highlighting (inverted background)
