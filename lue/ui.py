@@ -583,15 +583,17 @@ async def display_ui(reader):
                 
                 progress_text = f"{title_text} {connecting_line} {percentage_text}"
                 
-                # Create a solid border line for the bottom
-                border_line = ICONS.LINE_SEPARATOR_SHORT * (width - 4)
+                # Create a solid border line for the bottom with proper alignment
+                # Calculate the exact width needed for the subtitle to fill the bottom border
+                subtitle_width = width - 4  # Panel borders take 2 characters
+                border_line = ICONS.LINE_SEPARATOR_SHORT * subtitle_width
                 
                 book_panel = Panel(
                     book_content,
                     title=f"[{COLORS.PANEL_TITLE}]{progress_text}[/{COLORS.PANEL_TITLE}]",
                     subtitle=f"[{COLORS.SEPARATORS}]{border_line}[/{COLORS.SEPARATORS}]",
                     border_style=COLORS.PANEL_BORDER,
-                    padding=(1, 4),
+                    padding=(1, 4),  # Same padding as mode 2 for consistency
                     title_align="center",
                     subtitle_align="center",
                     width=width,
