@@ -131,7 +131,14 @@ def update_document_layout(reader):
     reader.paragraph_line_ranges = {}
     
     width, _ = get_terminal_size()
-    available_width = max(20, width - 10)
+    
+    # Adjust available width based on UI complexity mode
+    if config.UI_COMPLEXITY_MODE == 0:
+        # Mode 0: Full screen width for text
+        available_width = width
+    else:
+        # Mode 1 and 2: Account for borders and padding
+        available_width = max(20, width - 10)
     
     for chap_idx, chapter in enumerate(reader.chapters):
         if chap_idx > 0:
@@ -211,8 +218,20 @@ def _apply_current_text_color(line):
 def get_visible_content(reader):
     """Get the visible content to display."""
     width, height = get_terminal_size()
-    available_height = max(1, height - 4)
-    available_width = max(20, width - 10)
+    
+    # Adjust available space based on UI complexity mode
+    if config.UI_COMPLEXITY_MODE == 0:
+        # Mode 0: Full screen for text, no borders or UI elements
+        available_height = height
+        available_width = width
+    elif config.UI_COMPLEXITY_MODE == 1:
+        # Mode 1: Account for top title bar and borders, but no bottom controls
+        available_height = max(1, height - 4)  # Top border, title, bottom border
+        available_width = max(20, width - 10)  # Side borders and padding
+    else:
+        # Mode 2: Full UI with top and bottom elements
+        available_height = max(1, height - 4)  # Top border, title, subtitle, bottom border
+        available_width = max(20, width - 10)  # Side borders and padding
 
     start_line = int(reader.scroll_offset)
     end_line = min(len(reader.document_lines), start_line + available_height)
@@ -384,6 +403,7 @@ def get_compact_subtitle(reader, width):
     scroll_text = f"[{COLORS.CONTROL_KEYS}]i{ICONS.SEPARATOR}m[/{COLORS.CONTROL_KEYS}]"
     quit_text = f"[{COLORS.CONTROL_KEYS}]q[/{COLORS.CONTROL_KEYS}]"
     auto_text = f"[{COLORS.CONTROL_KEYS}]a{ICONS.SEPARATOR}t[/{COLORS.CONTROL_KEYS}]"
+    ui_mode_text = f"[{COLORS.CONTROL_KEYS}]v[/{COLORS.CONTROL_KEYS}]"
     
     if reader.auto_scroll_enabled:
         auto_scroll_icon = ICONS.AUTO_SCROLL
@@ -408,7 +428,11 @@ def get_compact_subtitle(reader, width):
         auto_extra = 2 if auto_scroll_text == "AUTO" else 0
         auto_sep = base_sep + (ICONS.LINE_SEPARATOR_SHORT * auto_extra)
         
-        controls_text = f"{nav_text_1} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_UP}[/{COLORS.CONTROL_ICONS}] {nav_text_2} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_DOWN}[/{COLORS.CONTROL_ICONS}] [{COLORS.SEPARATORS}]{base_sep}[/{COLORS.SEPARATORS}] {page_text} [{COLORS.ARROW_ICONS}]{ICONS.ROW_NAVIGATION}[/{COLORS.ARROW_ICONS}] {scroll_text} [{COLORS.ARROW_ICONS}]{ICONS.PAGE_NAVIGATION}[/{COLORS.ARROW_ICONS}] [{COLORS.SEPARATORS}]{base_sep}[/{COLORS.SEPARATORS}] {quit_text} [{COLORS.QUIT_ICON}]{ICONS.QUIT}[/{COLORS.QUIT_ICON}]"
+        # Get UI mode display
+        ui_mode_names = ["MIN", "MED", "FULL"]
+        ui_mode_display = ui_mode_names[config.UI_COMPLEXITY_MODE]
+        
+        controls_text = f"{nav_text_1} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_UP}[/{COLORS.CONTROL_ICONS}] {nav_text_2} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_DOWN}[/{COLORS.CONTROL_ICONS}] [{COLORS.SEPARATORS}]{base_sep}[/{COLORS.SEPARATORS}] {page_text} [{COLORS.ARROW_ICONS}]{ICONS.ROW_NAVIGATION}[/{COLORS.ARROW_ICONS}] {scroll_text} [{COLORS.ARROW_ICONS}]{ICONS.PAGE_NAVIGATION}[/{COLORS.ARROW_ICONS}] [{COLORS.SEPARATORS}]{base_sep}[/{COLORS.SEPARATORS}] {ui_mode_text} [{COLORS.CONTROL_ICONS}]{ui_mode_display}[/{COLORS.CONTROL_ICONS}] [{COLORS.SEPARATORS}]{base_sep}[/{COLORS.SEPARATORS}] {quit_text} [{COLORS.QUIT_ICON}]{ICONS.QUIT}[/{COLORS.QUIT_ICON}]"
         
         playing_color = COLORS.PLAYING_STATUS if not reader.is_paused else COLORS.PAUSED_STATUS
         auto_color = COLORS.AUTO_SCROLL_ENABLED if reader.auto_scroll_enabled else COLORS.AUTO_SCROLL_DISABLED
@@ -431,7 +455,12 @@ def get_compact_subtitle(reader, width):
             icon_status = f"[{COLORS.CONTROL_KEYS}]p[/{COLORS.CONTROL_KEYS}] {status_icon}"
             
         icon_auto = f"{auto_scroll_icon}"
-        controls_text = f"[{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {nav_text_1} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_UP}[/{COLORS.CONTROL_ICONS}] {nav_text_2} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_DOWN}[/{COLORS.CONTROL_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {page_text} [{COLORS.ARROW_ICONS}]{ICONS.ROW_NAVIGATION}[/{COLORS.ARROW_ICONS}] {scroll_text} [{COLORS.ARROW_ICONS}]{ICONS.PAGE_NAVIGATION}[/{COLORS.ARROW_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {quit_text} [{COLORS.QUIT_ICON}]{ICONS.QUIT}[/{COLORS.QUIT_ICON}]"
+        
+        # Get UI mode display
+        ui_mode_names = ["MIN", "MED", "FULL"]
+        ui_mode_display = ui_mode_names[config.UI_COMPLEXITY_MODE]
+        
+        controls_text = f"[{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {nav_text_1} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_UP}[/{COLORS.CONTROL_ICONS}] {nav_text_2} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_DOWN}[/{COLORS.CONTROL_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {page_text} [{COLORS.ARROW_ICONS}]{ICONS.ROW_NAVIGATION}[/{COLORS.ARROW_ICONS}] {scroll_text} [{COLORS.ARROW_ICONS}]{ICONS.PAGE_NAVIGATION}[/{COLORS.ARROW_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {ui_mode_text} [{COLORS.CONTROL_ICONS}]{ui_mode_display}[/{COLORS.CONTROL_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {quit_text} [{COLORS.QUIT_ICON}]{ICONS.QUIT}[/{COLORS.QUIT_ICON}]"
         
         playing_color = COLORS.PLAYING_STATUS if not reader.is_paused else COLORS.PAUSED_STATUS
         auto_color = COLORS.AUTO_SCROLL_ENABLED if reader.auto_scroll_enabled else COLORS.AUTO_SCROLL_DISABLED
@@ -447,7 +476,12 @@ def get_compact_subtitle(reader, width):
             icon_status = f"[{COLORS.CONTROL_KEYS}]p[/{COLORS.CONTROL_KEYS}] {status_icon}"
             
         icon_auto = f"{auto_scroll_icon}"
-        controls_text = f"[{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {nav_text_1} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_UP}[/{COLORS.CONTROL_ICONS}] {nav_text_2} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_DOWN}[/{COLORS.CONTROL_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {page_text} [{COLORS.ARROW_ICONS}]{ICONS.ROW_NAVIGATION}[/{COLORS.ARROW_ICONS}] {scroll_text} [{COLORS.ARROW_ICONS}]{ICONS.PAGE_NAVIGATION}[/{COLORS.ARROW_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {quit_text} [{COLORS.QUIT_ICON}]{ICONS.QUIT}[/{COLORS.QUIT_ICON}]"
+        
+        # Get UI mode display
+        ui_mode_names = ["MIN", "MED", "FULL"]
+        ui_mode_display = ui_mode_names[config.UI_COMPLEXITY_MODE]
+        
+        controls_text = f"[{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {nav_text_1} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_UP}[/{COLORS.CONTROL_ICONS}] {nav_text_2} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_DOWN}[/{COLORS.CONTROL_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {page_text} [{COLORS.ARROW_ICONS}]{ICONS.ROW_NAVIGATION}[/{COLORS.ARROW_ICONS}] {scroll_text} [{COLORS.ARROW_ICONS}]{ICONS.PAGE_NAVIGATION}[/{COLORS.ARROW_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {ui_mode_text} [{COLORS.CONTROL_ICONS}]{ui_mode_display}[/{COLORS.CONTROL_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {quit_text} [{COLORS.QUIT_ICON}]{ICONS.QUIT}[/{COLORS.QUIT_ICON}]"
         
         playing_color = COLORS.PLAYING_STATUS if not reader.is_paused else COLORS.PAUSED_STATUS
         auto_color = COLORS.AUTO_SCROLL_ENABLED if reader.auto_scroll_enabled else COLORS.AUTO_SCROLL_DISABLED
@@ -463,7 +497,12 @@ def get_compact_subtitle(reader, width):
             icon_status = f"[{COLORS.CONTROL_KEYS}]p[/{COLORS.CONTROL_KEYS}] {status_icon}"
             
         icon_auto = f"{auto_scroll_icon}"
-        controls_text = f"[{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {nav_text_1} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_UP}[/{COLORS.CONTROL_ICONS}] {nav_text_2} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_DOWN}[/{COLORS.CONTROL_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {page_text} [{COLORS.ARROW_ICONS}]{ICONS.ROW_NAVIGATION}[/{COLORS.ARROW_ICONS}] {scroll_text} [{COLORS.ARROW_ICONS}]{ICONS.PAGE_NAVIGATION}[/{COLORS.ARROW_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {quit_text} [{COLORS.QUIT_ICON}]{ICONS.QUIT}[/{COLORS.QUIT_ICON}]"
+        
+        # Get UI mode display
+        ui_mode_names = ["MIN", "MED", "FULL"]
+        ui_mode_display = ui_mode_names[config.UI_COMPLEXITY_MODE]
+        
+        controls_text = f"[{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {nav_text_1} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_UP}[/{COLORS.CONTROL_ICONS}] {nav_text_2} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_DOWN}[/{COLORS.CONTROL_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {page_text} [{COLORS.ARROW_ICONS}]{ICONS.ROW_NAVIGATION}[/{COLORS.ARROW_ICONS}] {scroll_text} [{COLORS.ARROW_ICONS}]{ICONS.PAGE_NAVIGATION}[/{COLORS.ARROW_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {ui_mode_text} [{COLORS.CONTROL_ICONS}]{ui_mode_display}[/{COLORS.CONTROL_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {quit_text} [{COLORS.QUIT_ICON}]{ICONS.QUIT}[/{COLORS.QUIT_ICON}]"
         
         playing_color = COLORS.PLAYING_STATUS if not reader.is_paused else COLORS.PAUSED_STATUS
         auto_color = COLORS.AUTO_SCROLL_ENABLED if reader.auto_scroll_enabled else COLORS.AUTO_SCROLL_DISABLED
@@ -488,7 +527,7 @@ async def display_ui(reader):
                 width, height, reader.auto_scroll_enabled, reader.selection_active,
                 reader.selection_start, reader.selection_end,
                 # Add playback speed to trigger UI updates when speed changes
-                reader.playback_speed
+                reader.playback_speed, config.UI_COMPLEXITY_MODE
             )
             
             if reader.last_rendered_state == current_state and reader.last_terminal_size == (width, height):
@@ -504,55 +543,121 @@ async def display_ui(reader):
                 if i < len(visible_lines) - 1:
                     book_content.append("\n")
             
-            progress_bar_width = 10
-            filled_blocks = int((progress_percent / 100) * progress_bar_width)
-            empty_blocks = progress_bar_width - filled_blocks
-            progress_bar = ICONS.PROGRESS_FILLED * filled_blocks + ICONS.PROGRESS_EMPTY * empty_blocks
-            
-            percentage_text = f"{int(progress_percent)}% {progress_bar}"
-            
-            available_width = width - len(percentage_text) - 6
-            
-            if len(reader.book_title) > available_width:
-                title_text = f"{reader.book_title[:available_width-3]}..."
-            else:
-                title_text = reader.book_title
-            
-            used_space = len(title_text) + len(percentage_text) + 2
-            remaining_space = width - used_space - 6
-            connecting_line = ICONS.LINE_SEPARATOR_SHORT * max(0, remaining_space)
-            
-            progress_text = f"{title_text} {connecting_line} {percentage_text}"
-            
             sys.stdout.write('\033[?25l\033[2J\033[H')
             
             temp_console = Console(width=width, height=height, force_terminal=True)
             
-            subtitle = get_compact_subtitle(reader, width)
+            # Handle different UI complexity modes
+            if config.UI_COMPLEXITY_MODE == 0:
+                # Mode 0: Minimal - text only, no borders, no UI elements
+                with temp_console.capture() as capture:
+                    temp_console.print(book_content, end='', overflow='crop')
+                
+                output = capture.get()
+                output_lines = output.split('\n')
+                if len(output_lines) > height:
+                    output_lines = output_lines[:height]
+                    output = '\n'.join(output_lines)
+                
+                sys.stdout.write(output)
+                
+            elif config.UI_COMPLEXITY_MODE == 1:
+                # Mode 1: Medium - top bar with title and progress, borders, no bottom controls
+                progress_bar_width = 10
+                filled_blocks = int((progress_percent / 100) * progress_bar_width)
+                empty_blocks = progress_bar_width - filled_blocks
+                progress_bar = ICONS.PROGRESS_FILLED * filled_blocks + ICONS.PROGRESS_EMPTY * empty_blocks
+                
+                percentage_text = f"{int(progress_percent)}% {progress_bar}"
+                
+                available_width = width - len(percentage_text) - 6
+                
+                if len(reader.book_title) > available_width:
+                    title_text = f"{reader.book_title[:available_width-3]}..."
+                else:
+                    title_text = reader.book_title
+                
+                used_space = len(title_text) + len(percentage_text) + 2
+                remaining_space = width - used_space - 6
+                connecting_line = ICONS.LINE_SEPARATOR_SHORT * max(0, remaining_space)
+                
+                progress_text = f"{title_text} {connecting_line} {percentage_text}"
+                
+                # Create a solid border line for the bottom
+                border_line = ICONS.LINE_SEPARATOR_SHORT * (width - 4)
+                
+                book_panel = Panel(
+                    book_content,
+                    title=f"[{COLORS.PANEL_TITLE}]{progress_text}[/{COLORS.PANEL_TITLE}]",
+                    subtitle=f"[{COLORS.SEPARATORS}]{border_line}[/{COLORS.SEPARATORS}]",
+                    border_style=COLORS.PANEL_BORDER,
+                    padding=(1, 4),
+                    title_align="center",
+                    subtitle_align="center",
+                    width=width,
+                    height=height,
+                    expand=False
+                )
+                
+                with temp_console.capture() as capture:
+                    temp_console.print(book_panel, end='', overflow='crop')
+                
+                output = capture.get()
+                output_lines = output.split('\n')
+                if len(output_lines) > height:
+                    output_lines = output_lines[:height]
+                    output = '\n'.join(output_lines)
+                
+                sys.stdout.write(output)
+                
+            else:
+                # Mode 2: Full - default mode with all UI elements
+                progress_bar_width = 10
+                filled_blocks = int((progress_percent / 100) * progress_bar_width)
+                empty_blocks = progress_bar_width - filled_blocks
+                progress_bar = ICONS.PROGRESS_FILLED * filled_blocks + ICONS.PROGRESS_EMPTY * empty_blocks
+                
+                percentage_text = f"{int(progress_percent)}% {progress_bar}"
+                
+                available_width = width - len(percentage_text) - 6
+                
+                if len(reader.book_title) > available_width:
+                    title_text = f"{reader.book_title[:available_width-3]}..."
+                else:
+                    title_text = reader.book_title
+                
+                used_space = len(title_text) + len(percentage_text) + 2
+                remaining_space = width - used_space - 6
+                connecting_line = ICONS.LINE_SEPARATOR_SHORT * max(0, remaining_space)
+                
+                progress_text = f"{title_text} {connecting_line} {percentage_text}"
+                
+                subtitle = get_compact_subtitle(reader, width)
+                
+                book_panel = Panel(
+                    book_content,
+                    title=f"[{COLORS.PANEL_TITLE}]{progress_text}[/{COLORS.PANEL_TITLE}]",
+                    subtitle=subtitle,
+                    border_style=COLORS.PANEL_BORDER,
+                    padding=(1, 4),
+                    title_align="center",
+                    subtitle_align="center",
+                    width=width,
+                    height=height,
+                    expand=False
+                )
+                
+                with temp_console.capture() as capture:
+                    temp_console.print(book_panel, end='', overflow='crop')
+                
+                output = capture.get()
+                output_lines = output.split('\n')
+                if len(output_lines) > height:
+                    output_lines = output_lines[:height]
+                    output = '\n'.join(output_lines)
+                
+                sys.stdout.write(output)
             
-            book_panel = Panel(
-                book_content,
-                title=f"[{COLORS.PANEL_TITLE}]{progress_text}[/{COLORS.PANEL_TITLE}]",
-                subtitle=subtitle,
-                border_style=COLORS.PANEL_BORDER,
-                padding=(1, 4),
-                title_align="center",
-                subtitle_align="center",
-                width=width,
-                height=height,
-                expand=False
-            )
-            
-            with temp_console.capture() as capture:
-                temp_console.print(book_panel, end='', overflow='crop')
-            
-            output = capture.get()
-            output_lines = output.split('\n')
-            if len(output_lines) > height:
-                output_lines = output_lines[:height]
-                output = '\n'.join(output_lines)
-            
-            sys.stdout.write(output)
             sys.stdout.flush()
             
         except (IndexError, ValueError):

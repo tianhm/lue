@@ -127,6 +127,8 @@ def process_input(reader):
                 cmd = 'toggle_sentence_highlight'
             elif data == 'w':
                 cmd = 'toggle_word_highlight'
+            elif data == 'v':
+                cmd = 'cycle_ui_complexity'
             
             if cmd:
                 reader.loop.call_soon_threadsafe(reader._post_command_sync, cmd)

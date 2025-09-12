@@ -1288,6 +1288,13 @@ class Lue:
                 config.WORD_HIGHLIGHT_MODE = (config.WORD_HIGHLIGHT_MODE + 1) % 3
                 # Force immediate UI update
                 asyncio.create_task(ui.display_ui(self))
+            elif cmd == 'cycle_ui_complexity':
+                # Cycle through UI complexity modes: 0=minimal, 1=medium, 2=full
+                config.UI_COMPLEXITY_MODE = (config.UI_COMPLEXITY_MODE + 1) % 3
+                # Update document layout to account for new available space
+                ui.update_document_layout(self)
+                # Force immediate UI update
+                asyncio.create_task(ui.display_ui(self))
             elif 'next' in cmd or 'prev' in cmd:
                 if config.SMOOTH_SCROLLING_ENABLED:
                     self._handle_navigation_smooth(cmd)

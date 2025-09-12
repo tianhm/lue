@@ -49,6 +49,7 @@ PDF_HEADER_REPETITION_THRESHOLD = 0.8  # Text must appear on 80% of pages to be 
 
 # UI settings
 SMOOTH_SCROLLING_ENABLED = True  # Enable smooth scrolling for keyboard navigation
+UI_COMPLEXITY_MODE = 1  # 0=minimal (text only), 1=medium (top bar only), 2=full (default)
 
 # Highlighting settings
 SENTENCE_HIGHLIGHTING_ENABLED = True  # Enable sentence-level highlighting
