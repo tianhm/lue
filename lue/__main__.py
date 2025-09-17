@@ -10,10 +10,45 @@ import os
 import platform
 import platformdirs
 import logging
+try:
+    from importlib.resources import files
+except ImportError:
+    # Fallback for Python < 3.9
+    from importlib_resources import files
 from rich.console import Console
 from .reader import Lue
 from . import config, progress_manager
 from .tts_manager import TTSManager, get_default_tts_model_name
+
+def get_guide_file_path():
+    """Get the path to the guide file, creating a temporary file if needed for packaged installs."""
+    import tempfile
+    
+    try:
+        # Try to get the guide from the package data first (for pip installs)
+        try:
+            guide_file = files('lue') / 'guide.txt'
+            guide_content = guide_file.read_text(encoding='utf-8')
+            
+            # Create a temporary file with a user-friendly name
+            temp_dir = tempfile.gettempdir()
+            temp_path = os.path.join(temp_dir, "Lue Navigation Guide.txt")
+            
+            with open(temp_path, 'w', encoding='utf-8') as temp_file:
+                temp_file.write(guide_content)
+            
+            return temp_path
+            
+        except (FileNotFoundError, ModuleNotFoundError):
+            # Fallback to local file (for development)
+            guide_path = os.path.join(os.path.dirname(__file__), 'guide.txt')
+            if os.path.exists(guide_path):
+                return guide_path
+            else:
+                return None
+                
+    except Exception:
+        return None
 
 def setup_logging():
     """Set up file-based logging for the application."""
@@ -53,6 +88,12 @@ async def main():
         '-h', '--help',
         action='help',
         help='Show this help message and exit'
+    )
+    
+    parser.add_argument(
+        '-g', '--guide',
+        action='store_true',
+        help='Open the keyboard shortcuts navigation guide'
     )
     
     parser.add_argument("file_path", nargs='?', help="Path to the eBook file (.epub, .pdf, .txt, etc.). If not provided, opens the last book you were reading.")
@@ -99,8 +140,17 @@ async def main():
     # Initialize console early for printing messages
     console = Console()
 
+    # Handle guide argument - open guide file in Lue app
+    if args.guide:
+        guide_path = get_guide_file_path()
+        if guide_path:
+            console.print("[green]Opening navigation guide...[/green]")
+            args.file_path = guide_path
+        else:
+            console.print("[red]Guide file not found.[/red]")
+            sys.exit(1)
     # Handle the case when no file is provided - try to open the last book
-    if not args.file_path:
+    elif not args.file_path:
         last_book_path = progress_manager.find_most_recent_book()
         if last_book_path:
             console.print(f"[green]Opening last book: {os.path.basename(last_book_path)}[/green]")
@@ -150,6 +200,12 @@ async def main():
     
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
+    temp_guide_file = None
+    
+    # Check if we're using a temporary guide file
+    if args.guide and args.file_path and "Lue Navigation Guide.txt" in args.file_path:
+        temp_guide_file = args.file_path
+    
     try:
         tty.setcbreak(sys.stdin.fileno())
         
@@ -165,6 +221,13 @@ async def main():
         sys.stdout.flush()
         if fd is not None and old_settings is not None:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        
+        # Clean up temporary guide file if it was created
+        if temp_guide_file:
+            try:
+                os.unlink(temp_guide_file)
+            except (OSError, FileNotFoundError):
+                pass
 
 def cli():
     """Synchronous entry point for the command-line interface."""

@@ -48,7 +48,10 @@ sudo apt install ffmpeg
 # 2. Install the latest version from PyPI
 pip install lue-reader
 
-# 3. Start reading!
+# 3. Practice using Lue with the navigation guide
+lue --guide
+
+# 4. Start reading!
 lue path/to/your/book.epub 
 ```
 
@@ -153,6 +156,9 @@ lue --over 0.2 path/to/your/book.epub
 
 # Enable PDF cleaning filter (removes page numbers, headers and footnotes)
 lue --filter path/to/your/book.pdf
+
+# Practice using Lue with the navigation guide
+lue --guide
 
 # View available options
 lue --help

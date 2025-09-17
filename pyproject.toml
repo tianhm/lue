@@ -54,4 +54,4 @@ Issues = "https://github.com/superstarryeyes/lue/issues"
 include = ["lue*"]
 
 [tool.setuptools.package-data]
-lue = ["py.typed"]
+lue = ["py.typed", "guide.txt"]

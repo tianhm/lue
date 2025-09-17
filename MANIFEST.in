@@ -5,3 +5,4 @@ include DEVELOPER.md
 include VOICES.md
 recursive-include lue *.py
 recursive-include lue *.typed
+recursive-include lue *.txt

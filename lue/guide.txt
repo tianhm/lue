@@ -3,7 +3,7 @@ Chapter 1: Introduction
 Welcome to Lue, your terminal-based eBook reader with modular text-to-speech support. This document is designed to let you practice navigating your book while hearing instructions read aloud. 
 
 
-Chapter 2: Navigation
+Chapter 2: Reading Controls
 
 Now let’s test sentence-level navigation. Press "j" to return to the previous sentence. Press "k" to jump to the next sentence. If you want to jump to the top visible sentence on the screen, press "t" key. Press "h" to go back to the previous paragraph. Press "l" to move to the next paragraph. You can pause and resume the text-to-speech model with "p", Lue remembers exactly where you were.  
 
