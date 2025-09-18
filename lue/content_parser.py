@@ -599,70 +599,7 @@ def _extract_content_pdf(file_path, console):
         cleaned = ' '.join(cleaned.split())
         return cleaned
 
-    def detect_repeated_headers(doc, console, repetition_threshold):
-        """Detect headers by finding text that repeats in the same position across pages"""
-        from collections import Counter
-        
-        all_text_blocks = []
-        page_count = len(doc)
-        
-        # Collect all text blocks with their positions
-        for page_num, page in enumerate(doc):
-            page_height = page.rect.height
-            page_width = page.rect.width
-            blocks = page.get_text("blocks")
-            
-            for block in blocks:
-                x0, y0, x1, y1, text = block[:5]
-                text = text.strip()
-                if text and len(text) > 2:
-                    # Normalize position as percentage of page dimensions
-                    norm_x = x0 / page_width
-                    norm_y = y0 / page_height
-                    
-                    # Create a position key (rounded to handle slight variations)
-                    pos_key = (round(norm_x, 2), round(norm_y, 2))
-                    
-                    # Remove page numbers from text for comparison
-                    text_normalized = re.sub(r'\b\d+\b', '', text).strip()
-                    if text_normalized:
-                        all_text_blocks.append((pos_key, text_normalized, page_num))
-        
-        # Find text that appears in the same position on multiple pages
-        position_text_counts = Counter()
-        for pos_key, text, page_num in all_text_blocks:
-            position_text_counts[(pos_key, text)] += 1
-        
-        # Identify headers using configurable threshold
-        threshold = max(2, int(page_count * repetition_threshold))
-        repeated_headers = set()
-        
-        for (pos_key, text), count in position_text_counts.items():
-            if count >= threshold:
-                repeated_headers.add((pos_key, text))
-        
-        return repeated_headers
 
-    def is_repeated_header(block, page_height, page_width, repeated_headers):
-        """Check if a block matches any of the detected repeated headers"""
-        x0, y0, x1, y1, text = block[:5]
-        text = text.strip()
-        if not text:
-            return False
-            
-        # Normalize position
-        norm_x = round(x0 / page_width, 2)
-        norm_y = round(y0 / page_height, 2)
-        pos_key = (norm_x, norm_y)
-        
-        # Remove page numbers for comparison
-        text_normalized = re.sub(r'\b\d+\b', '', text).strip()
-        
-        # Check if this matches any repeated header
-        for header_pos, header_text in repeated_headers:
-            if header_pos == pos_key and header_text == text_normalized:
-                return True
-        return False
 
     try:
         doc = fitz.open(file_path)
@@ -671,9 +608,6 @@ def _extract_content_pdf(file_path, console):
         return []
 
     # Initialize filtering based on config
-    repeated_headers = set()
-    if config.PDF_FILTERS_ENABLED and config.PDF_FILTER_HEADERS_BY_REPETITION:
-        repeated_headers = detect_repeated_headers(doc, console, config.PDF_HEADER_REPETITION_THRESHOLD)
     
     all_paragraphs = []
     headers_filtered = 0
@@ -687,19 +621,16 @@ def _extract_content_pdf(file_path, console):
 
         for block in blocks:
             # Skip footnotes (if enabled)
-            if config.PDF_FILTERS_ENABLED and config.PDF_FILTER_FOOTNOTES and is_footnote_block(block, page_height, config.PDF_BOTTOM_MARGIN):
+            if config.PDF_FILTERS_ENABLED and config.PDF_FILTER_FOOTNOTES and is_footnote_block(block, page_height, config.PDF_FOOTNOTE_MARGIN):
                 footnotes_filtered += 1
                 continue
                 
             # Skip headers by position (if enabled)
-            if config.PDF_FILTERS_ENABLED and config.PDF_FILTER_HEADERS_BY_POSITION and is_header_block(block, page_height, config.PDF_TOP_MARGIN):
+            if config.PDF_FILTERS_ENABLED and config.PDF_FILTER_HEADERS and is_header_block(block, page_height, config.PDF_HEADER_MARGIN):
                 headers_filtered += 1
                 continue
                 
-            # Skip repeated headers detected by pattern analysis (if enabled)
-            if config.PDF_FILTERS_ENABLED and config.PDF_FILTER_HEADERS_BY_REPETITION and is_repeated_header(block, page_height, page_width, repeated_headers):
-                headers_filtered += 1
-                continue
+
                 
             main_content_blocks.append(block)
 
