@@ -43,8 +43,8 @@ PDF_FILTER_HEADERS_BY_REPETITION = True  # Filter repeated text across pages
 PDF_FILTER_FOOTNOTES = True  # Filter page numbers and footnotes in bottom margin of pages
 
 # PDF filtering thresholds (only used when respective filters are enabled)
-PDF_HEADER_TOP_MARGIN = 0.1  # Top 10% of page considered header area
-PDF_FOOTNOTE_BOTTOM_MARGIN = 0.9  # Bottom 10% of page considered footnote area
+PDF_TOP_MARGIN = 0.1  # Top 10% of page considered header area
+PDF_BOTTOM_MARGIN = 0.1  # Bottom 10% of page considered footnote area
 PDF_HEADER_REPETITION_THRESHOLD = 0.8  # Text must appear on 80% of pages to be considered repeated header
 
 # UI settings

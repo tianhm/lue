@@ -552,8 +552,8 @@ def _extract_content_pdf(file_path, console):
         x0, y0, x1, y1, text = block[:5]
         text = text.strip()
         
-        # Check if block STARTS in the bottom margin
-        if y0 < page_height * bottom_margin:
+        # Check if block STARTS in the bottom margin (bottom bottom_margin fraction of page)
+        if y0 < page_height * (1 - bottom_margin):
             return False
             
         # If we're in the bottom margin, apply additional checks
@@ -687,12 +687,12 @@ def _extract_content_pdf(file_path, console):
 
         for block in blocks:
             # Skip footnotes (if enabled)
-            if config.PDF_FILTERS_ENABLED and config.PDF_FILTER_FOOTNOTES and is_footnote_block(block, page_height, config.PDF_FOOTNOTE_BOTTOM_MARGIN):
+            if config.PDF_FILTERS_ENABLED and config.PDF_FILTER_FOOTNOTES and is_footnote_block(block, page_height, config.PDF_BOTTOM_MARGIN):
                 footnotes_filtered += 1
                 continue
                 
             # Skip headers by position (if enabled)
-            if config.PDF_FILTERS_ENABLED and config.PDF_FILTER_HEADERS_BY_POSITION and is_header_block(block, page_height, config.PDF_HEADER_TOP_MARGIN):
+            if config.PDF_FILTERS_ENABLED and config.PDF_FILTER_HEADERS_BY_POSITION and is_header_block(block, page_height, config.PDF_TOP_MARGIN):
                 headers_filtered += 1
                 continue
                 
