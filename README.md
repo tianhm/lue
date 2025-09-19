@@ -154,8 +154,12 @@ lue --lang a path/to/your/book.epub
 # Seconds of overlap between sentences
 lue --over 0.2 path/to/your/book.epub
 
-# Enable PDF cleaning filter (removes page numbers, headers and footnotes)
+# Enable PDF cleaning filter (removes page numbers, headers and footnotes, default: 10% (0.1) from both bottom and top of the page)
 lue --filter path/to/your/book.pdf
+
+# Set custom PDF filter margins (0.0-1.0, where 0.1 = 10% of page)
+lue --filter 0.15 path/to/your/book.pdf          # Both margins to 15%
+lue --filter 0.12 0.20 path/to/your/book.pdf     # Header 12%, footnote 20%
 
 # Practice using Lue with the navigation guide
 lue --guide

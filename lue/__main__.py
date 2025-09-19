@@ -74,7 +74,47 @@ def setup_environment():
     if platform.system() == "Darwin" and platform.processor() == "arm":
         os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
+def preprocess_filter_args(args):
+    """Preprocess arguments to handle --filter with space-separated values."""
+    processed_args = []
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        if arg in ['--filter', '-f']:
+            # Found filter argument
+            processed_args.append(arg)
+            i += 1
+            
+            # Collect numeric values that follow
+            filter_values = []
+            while i < len(args):
+                try:
+                    # Try to parse as float
+                    float(args[i])
+                    filter_values.append(args[i])
+                    i += 1
+                    if len(filter_values) >= 2:  # Max 2 values
+                        break
+                except ValueError:
+                    # Not a number, stop collecting
+                    break
+            
+            # Join the values and add as a single argument
+            if filter_values:
+                processed_args.append(' '.join(filter_values))
+            else:
+                # No values provided, add empty string
+                processed_args.append('')
+        else:
+            processed_args.append(arg)
+            i += 1
+    
+    return processed_args
+
 async def main():
+    # Preprocess arguments to handle filter syntax
+    preprocessed_args = preprocess_filter_args(sys.argv[1:])
+    
     tts_manager = TTSManager()
     available_tts = tts_manager.get_available_tts_names()
     default_tts = get_default_tts_model_name(available_tts)
@@ -100,8 +140,9 @@ async def main():
     parser.add_argument(
         "-f",
         "--filter",
-        action="store_true",
-        help="Enable PDF text cleaning filters",
+        nargs='?',
+        const='',
+        help="Enable PDF text cleaning filters. Usage: --filter (defaults), --filter 0.15 (both margins), --filter 0.12 0.20 (header, footnote)",
     )
     
     parser.add_argument(
@@ -135,7 +176,7 @@ async def main():
             "--lang",
             help="Specify the language for the TTS model",
         )
-    args = parser.parse_args()
+    args = parser.parse_args(preprocessed_args)
 
     # Initialize console early for printing messages
     console = Console()
@@ -167,8 +208,32 @@ async def main():
     if args.over is not None:
         config.OVERLAP_SECONDS = args.over
 
-    if args.filter:
+    # Handle PDF filter settings
+    if args.filter is not None:
         config.PDF_FILTERS_ENABLED = True
+        
+        if args.filter == '':
+            # Just --filter with no values, use defaults
+            pass
+        else:
+            # Parse the filter values
+            try:
+                filter_values = [float(x.strip()) for x in args.filter.split() if x.strip()]
+                
+                if len(filter_values) == 1:
+                    # One number provided - set both margins to this value
+                    config.PDF_HEADER_MARGIN = filter_values[0]
+                    config.PDF_FOOTNOTE_MARGIN = filter_values[0]
+                elif len(filter_values) == 2:
+                    # Two numbers provided - set header and footnote margins separately
+                    config.PDF_HEADER_MARGIN = filter_values[0]
+                    config.PDF_FOOTNOTE_MARGIN = filter_values[1]
+                elif len(filter_values) > 2:
+                    console.print("[red]Error: --filter accepts at most 2 values (header margin, footnote margin)[/red]")
+                    sys.exit(1)
+            except ValueError:
+                console.print(f"[red]Error: Invalid filter values '{args.filter}'. Expected float numbers.[/red]")
+                sys.exit(1)
 
     setup_environment()
     setup_logging()
