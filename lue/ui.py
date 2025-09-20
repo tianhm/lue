@@ -2,6 +2,7 @@ import asyncio
 import os
 import sys
 import re
+import json
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
@@ -10,6 +11,43 @@ from . import config, content_parser
 # ================================
 # CENTRALIZED UI CONFIGURATION
 # ================================
+# Load keyboard shortcuts
+KEYBOARD_SHORTCUTS = {}
+try:
+    with open(os.path.join(os.path.dirname(__file__), 'keyboard_shortcuts.json'), 'r') as f:
+        KEYBOARD_SHORTCUTS = json.load(f)
+except Exception:
+    # Fallback to default shortcuts if file cannot be loaded
+    KEYBOARD_SHORTCUTS = {
+        "navigation": {
+            "next_paragraph": "l",
+            "prev_paragraph": "h",
+            "next_sentence": "k",
+            "prev_sentence": "j",
+            "scroll_page_up": "i",
+            "scroll_page_down": "m",
+            "scroll_up": "u",
+            "scroll_down": "n",
+            "move_to_top_visible": "t",
+            "move_to_beginning": "y",
+            "move_to_end": "b"
+        },
+        "tts_controls": {
+            "pause": "p",
+            "decrease_speed": ",",
+            "increase_speed": ".",
+            "toggle_sentence_highlight": "s",
+            "toggle_word_highlight": "w"
+        },
+        "display_controls": {
+            "toggle_auto_scroll": "a",
+            "cycle_ui_complexity": "v"
+        },
+        "application": {
+            "quit": "q"
+        }
+    }
+
 class UIIcons:
     """Central place to configure all UI icons and separators."""
     
@@ -396,13 +434,31 @@ def get_compact_subtitle(reader, width):
     # Add speed indicator if not normal speed
     speed_indicator = reader._get_speed_display() if hasattr(reader, '_get_speed_display') else ""
     
-    # Control text with centralized colors
-    nav_text_1 = f"[{COLORS.CONTROL_KEYS}]h{ICONS.SEPARATOR}j[/{COLORS.CONTROL_KEYS}]"
-    nav_text_2 = f"[{COLORS.CONTROL_KEYS}]k{ICONS.SEPARATOR}l[/{COLORS.CONTROL_KEYS}]"
-    page_text = f"[{COLORS.CONTROL_KEYS}]u{ICONS.SEPARATOR}n[/{COLORS.CONTROL_KEYS}]"
-    scroll_text = f"[{COLORS.CONTROL_KEYS}]i{ICONS.SEPARATOR}m[/{COLORS.CONTROL_KEYS}]"
-    quit_text = f"[{COLORS.CONTROL_KEYS}]q[/{COLORS.CONTROL_KEYS}]"
-    auto_text = f"[{COLORS.CONTROL_KEYS}]a{ICONS.SEPARATOR}t[/{COLORS.CONTROL_KEYS}]"
+    # Get keyboard shortcuts
+    nav_shortcuts = KEYBOARD_SHORTCUTS.get("navigation", {})
+    tts_shortcuts = KEYBOARD_SHORTCUTS.get("tts_controls", {})
+    display_shortcuts = KEYBOARD_SHORTCUTS.get("display_controls", {})
+    app_shortcuts = KEYBOARD_SHORTCUTS.get("application", {})
+    
+    # Control text with centralized colors using loaded shortcuts
+    prev_para_key = nav_shortcuts.get("prev_paragraph", "h")
+    next_para_key = nav_shortcuts.get("next_paragraph", "l")
+    prev_sent_key = nav_shortcuts.get("prev_sentence", "j")
+    next_sent_key = nav_shortcuts.get("next_sentence", "k")
+    scroll_up_key = nav_shortcuts.get("scroll_up", "u")
+    scroll_down_key = nav_shortcuts.get("scroll_down", "n")
+    page_up_key = nav_shortcuts.get("scroll_page_up", "i")
+    page_down_key = nav_shortcuts.get("scroll_page_down", "m")
+    quit_key = app_shortcuts.get("quit", "q")
+    auto_scroll_key = display_shortcuts.get("toggle_auto_scroll", "a")
+    top_visible_key = nav_shortcuts.get("move_to_top_visible", "t")
+    
+    nav_text_1 = f"[{COLORS.CONTROL_KEYS}]{prev_para_key}{ICONS.SEPARATOR}{prev_sent_key}[/{COLORS.CONTROL_KEYS}]"
+    nav_text_2 = f"[{COLORS.CONTROL_KEYS}]{next_sent_key}{ICONS.SEPARATOR}{next_para_key}[/{COLORS.CONTROL_KEYS}]"
+    page_text = f"[{COLORS.CONTROL_KEYS}]{scroll_up_key}{ICONS.SEPARATOR}{scroll_down_key}[/{COLORS.CONTROL_KEYS}]"
+    scroll_text = f"[{COLORS.CONTROL_KEYS}]{page_up_key}{ICONS.SEPARATOR}{page_down_key}[/{COLORS.CONTROL_KEYS}]"
+    quit_text = f"[{COLORS.CONTROL_KEYS}]{quit_key}[/{COLORS.CONTROL_KEYS}]"
+    auto_text = f"[{COLORS.CONTROL_KEYS}]{auto_scroll_key}{ICONS.SEPARATOR}{top_visible_key}[/{COLORS.CONTROL_KEYS}]"
     # Removed ui_mode_text from here as we don't want to show it visually
     
     if reader.auto_scroll_enabled:
@@ -416,10 +472,11 @@ def get_compact_subtitle(reader, width):
         base_sep = ICONS.LINE_SEPARATOR_LONG
         
         # Construct status part with proper spacing
+        pause_key = tts_shortcuts.get("play_pause", "p")
         if speed_indicator:
-            status_part = f"[{COLORS.CONTROL_KEYS}]p[/{COLORS.CONTROL_KEYS}] {status_icon} {speed_indicator} {status_text}"
+            status_part = f"[{COLORS.CONTROL_KEYS}]{pause_key}[/{COLORS.CONTROL_KEYS}] {status_icon} {speed_indicator} {status_text}"
         else:
-            status_part = f"[{COLORS.CONTROL_KEYS}]p[/{COLORS.CONTROL_KEYS}] {status_icon} {status_text}"
+            status_part = f"[{COLORS.CONTROL_KEYS}]{pause_key}[/{COLORS.CONTROL_KEYS}] {status_icon} {status_text}"
             
         status_extra = 1 if status_text == "PAUSED" else 0
         status_sep = base_sep + (ICONS.LINE_SEPARATOR_SHORT * status_extra)
@@ -450,10 +507,11 @@ def get_compact_subtitle(reader, width):
         separator = ICONS.LINE_SEPARATOR_LONG
         
         # Construct status part with proper spacing
+        pause_key = tts_shortcuts.get("play_pause", "p")
         if speed_indicator:
-            icon_status = f"[{COLORS.CONTROL_KEYS}]p[/{COLORS.CONTROL_KEYS}] {status_icon}{speed_indicator}"
+            icon_status = f"[{COLORS.CONTROL_KEYS}]{pause_key}[/{COLORS.CONTROL_KEYS}] {status_icon}{speed_indicator}"
         else:
-            icon_status = f"[{COLORS.CONTROL_KEYS}]p[/{COLORS.CONTROL_KEYS}] {status_icon}"
+            icon_status = f"[{COLORS.CONTROL_KEYS}]{pause_key}[/{COLORS.CONTROL_KEYS}] {status_icon}"
             
         icon_auto = f"{auto_scroll_icon}"
         
@@ -472,10 +530,11 @@ def get_compact_subtitle(reader, width):
         separator = ICONS.LINE_SEPARATOR_MEDIUM
         
         # Construct status part with proper spacing
+        pause_key = tts_shortcuts.get("play_pause", "p")
         if speed_indicator:
-            icon_status = f"[{COLORS.CONTROL_KEYS}]p[/{COLORS.CONTROL_KEYS}] {status_icon}{speed_indicator}"
+            icon_status = f"[{COLORS.CONTROL_KEYS}]{pause_key}[/{COLORS.CONTROL_KEYS}] {status_icon}{speed_indicator}"
         else:
-            icon_status = f"[{COLORS.CONTROL_KEYS}]p[/{COLORS.CONTROL_KEYS}] {status_icon}"
+            icon_status = f"[{COLORS.CONTROL_KEYS}]{pause_key}[/{COLORS.CONTROL_KEYS}] {status_icon}"
             
         icon_auto = f"{auto_scroll_icon}"
         
@@ -494,10 +553,11 @@ def get_compact_subtitle(reader, width):
         separator = ICONS.LINE_SEPARATOR_SHORT
         
         # Construct status part with proper spacing
+        pause_key = tts_shortcuts.get("play_pause", "p")
         if speed_indicator:
-            icon_status = f"[{COLORS.CONTROL_KEYS}]p[/{COLORS.CONTROL_KEYS}] {status_icon}{speed_indicator}"
+            icon_status = f"[{COLORS.CONTROL_KEYS}]{pause_key}[/{COLORS.CONTROL_KEYS}] {status_icon}{speed_indicator}"
         else:
-            icon_status = f"[{COLORS.CONTROL_KEYS}]p[/{COLORS.CONTROL_KEYS}] {status_icon}"
+            icon_status = f"[{COLORS.CONTROL_KEYS}]{pause_key}[/{COLORS.CONTROL_KEYS}] {status_icon}"
             
         icon_auto = f"{auto_scroll_icon}"
         

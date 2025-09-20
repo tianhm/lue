@@ -1,8 +1,3 @@
-import sys
-import select
-import asyncio
-import subprocess
-
 def process_input(reader):
     """Process user input from stdin."""
     try:
@@ -87,64 +82,58 @@ def process_input(reader):
             reader.mouse_sequence_buffer = ''
             reader.mouse_sequence_active = False
             
-            if data == 'q':
+            # Get keyboard shortcuts
+            nav_shortcuts = KEYBOARD_SHORTCUTS.get("navigation", {})
+            tts_shortcuts = KEYBOARD_SHORTCUTS.get("tts_controls", {})
+            display_shortcuts = KEYBOARD_SHORTCUTS.get("display_controls", {})
+            app_shortcuts = KEYBOARD_SHORTCUTS.get("application", {})
+            
+            # Map input data to commands using loaded shortcuts
+            if data == app_shortcuts.get("quit", "q"):
                 reader.running = False
                 reader.command_received_event.set()
                 return
             
             cmd = None
-            if data == 'p':
+            if data == tts_shortcuts.get("play_pause", "p"):
                 cmd = 'pause'
-            elif data == 'h':
+            elif data == nav_shortcuts.get("prev_paragraph", "h"):
                 cmd = 'prev_paragraph'
-            elif data == 'j':
+            elif data == nav_shortcuts.get("prev_sentence", "j"):
                 cmd = 'prev_sentence'
-            elif data == 'k':
+            elif data == nav_shortcuts.get("next_sentence", "k"):
                 cmd = 'next_sentence'
-            elif data == 'l':
+            elif data == nav_shortcuts.get("next_paragraph", "l"):
                 cmd = 'next_paragraph'
-            elif data == 'i':
+            elif data == nav_shortcuts.get("scroll_page_up", "i"):
                 cmd = 'scroll_page_up'
-            elif data == 'm':
+            elif data == nav_shortcuts.get("scroll_page_down", "m"):
                 cmd = 'scroll_page_down'
-            elif data == 'u':
+            elif data == nav_shortcuts.get("scroll_up", "u"):
                 cmd = 'scroll_up'
-            elif data == 'n':
+            elif data == nav_shortcuts.get("scroll_down", "n"):
                 cmd = 'scroll_down'
-            elif data == 'a':
+            elif data == display_shortcuts.get("toggle_auto_scroll", "a"):
                 cmd = 'toggle_auto_scroll'
-            elif data == 't':
+            elif data == nav_shortcuts.get("move_to_top_visible", "t"):
                 cmd = 'move_to_top_visible'
-            elif data == 'y':
+            elif data == nav_shortcuts.get("move_to_beginning", "y"):
                 cmd = 'move_to_beginning'
-            elif data == 'b':
+            elif data == nav_shortcuts.get("move_to_end", "b"):
                 cmd = 'move_to_end'
-            elif data == ',':
+            elif data == tts_shortcuts.get("decrease_speed", ","):
                 cmd = 'decrease_speed'
-            elif data == '.':
+            elif data == tts_shortcuts.get("increase_speed", "."):
                 cmd = 'increase_speed'
-            elif data == 's':
+            elif data == tts_shortcuts.get("toggle_sentence_highlight", "s"):
                 cmd = 'toggle_sentence_highlight'
-            elif data == 'w':
+            elif data == tts_shortcuts.get("toggle_word_highlight", "w"):
                 cmd = 'toggle_word_highlight'
-            elif data == 'v':
+            elif data == display_shortcuts.get("cycle_ui_complexity", "v"):
                 cmd = 'cycle_ui_complexity'
             
             if cmd:
                 reader.loop.call_soon_threadsafe(reader._post_command_sync, cmd)
                 
     except Exception:
-        pass
-
-def _kill_audio_immediately(reader):
-    """Kill audio playback immediately."""
-    for process in reader.playback_processes[:]:
-        try:
-            process.kill()
-        except (ProcessLookupError, AttributeError):
-            pass
-    try:
-        subprocess.run(['pkill', '-f', 'ffplay'], check=False, 
-                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except (subprocess.CalledProcessError, FileNotFoundError):
         pass
