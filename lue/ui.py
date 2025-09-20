@@ -33,7 +33,7 @@ except Exception:
             "move_to_end": "b"
         },
         "tts_controls": {
-            "pause": "p",
+            "play_pause": "p",
             "decrease_speed": ",",
             "increase_speed": ".",
             "toggle_sentence_highlight": "s",

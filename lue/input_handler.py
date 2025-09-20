@@ -1,3 +1,47 @@
+import sys
+import select
+import asyncio
+import subprocess
+import json
+import os
+
+# Load keyboard shortcuts
+KEYBOARD_SHORTCUTS = {}
+try:
+    with open(os.path.join(os.path.dirname(__file__), 'keyboard_shortcuts.json'), 'r') as f:
+        KEYBOARD_SHORTCUTS = json.load(f)
+except Exception:
+    # Fallback to default shortcuts if file cannot be loaded
+    KEYBOARD_SHORTCUTS = {
+        "navigation": {
+            "next_paragraph": "l",
+            "prev_paragraph": "h",
+            "next_sentence": "k",
+            "prev_sentence": "j",
+            "scroll_page_up": "i",
+            "scroll_page_down": "m",
+            "scroll_up": "u",
+            "scroll_down": "n",
+            "move_to_top_visible": "t",
+            "move_to_beginning": "y",
+            "move_to_end": "b"
+        },
+        "tts_controls": {
+            "play_pause": "p",
+            "decrease_speed": ",",
+            "increase_speed": ".",
+            "toggle_sentence_highlight": "s",
+            "toggle_word_highlight": "w"
+        },
+        "display_controls": {
+            "toggle_auto_scroll": "a",
+            "cycle_ui_complexity": "v"
+        },
+        "application": {
+            "quit": "q"
+        }
+    }
+
 def process_input(reader):
     """Process user input from stdin."""
     try:
@@ -136,4 +180,17 @@ def process_input(reader):
                 reader.loop.call_soon_threadsafe(reader._post_command_sync, cmd)
                 
     except Exception:
+        pass
+
+def _kill_audio_immediately(reader):
+    """Kill audio playback immediately."""
+    for process in reader.playback_processes[:]:
+        try:
+            process.kill()
+        except (ProcessLookupError, AttributeError):
+            pass
+    try:
+        subprocess.run(['pkill', '-f', 'ffplay'], check=False, 
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except (subprocess.CalledProcessError, FileNotFoundError):
         pass
