@@ -251,25 +251,11 @@ async def _player_loop(reader):
                     reader.audio_queue.task_done()
                     continue
                 try:
-                    reader.loop.call_soon_threadsafe(reader._post_command_sync, ('_update_highlight', (c, p, s)))
-                    # Reset word index when starting a new sentence
-                    reader.ui_word_idx = 0
-                    # Store word timing information for this sentence
-                    sentences = content_parser.split_into_sentences(reader.chapters[c][p])
-                    current_text = sentences[s]
-                    reader.current_sentence_words = current_text.split()
-                    reader.current_sentence_duration = timing_info.get("speech_duration") or duration
-                    reader.current_word_start_time = asyncio.get_event_loop().time()
-                    
-                    # Store precise word timings and mapping from timing info
-                    word_timings = timing_info.get("word_timings", [])
-                    if word_timings:
-                        reader.current_word_timings = word_timings
-                        # Use the pre-calculated word mapping from timing info
-                        reader.current_word_mapping = timing_info.get("word_mapping")
-                    else:
-                        reader.current_word_timings = None
-                        reader.current_word_mapping = None
+                    # Post a command to the main loop to handle the state transition atomically
+                    reader.loop.call_soon_threadsafe(
+                        reader._post_command_sync,
+                        ('_new_sentence_started', (c, p, s, duration, timing_data))
+                    )
                 except RuntimeError:
                     reader.audio_queue.task_done()
                     break

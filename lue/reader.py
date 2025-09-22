@@ -1156,6 +1156,34 @@ class Lue:
                 command_name, data = cmd
                 if command_name == '_update_highlight':
                     if not self.is_paused: self.chapter_idx, self.paragraph_idx, self.sentence_idx = data
+                elif command_name == '_new_sentence_started':
+                    c, p, s, duration, timing_data = data
+                    
+                    # Update sentence position
+                    self.chapter_idx, self.paragraph_idx, self.sentence_idx = c, p, s
+                    
+                    # Reset word index for the new sentence
+                    self.ui_word_idx = 0
+                    
+                    # Set up timing information for the word_update_loop
+                    if isinstance(timing_data, dict):
+                        timing_info = timing_data
+                    else: # Handle old format
+                        timing_info = {"word_timings": timing_data, "speech_duration": duration, "total_duration": duration}
+
+                    sentences = content_parser.split_into_sentences(self.chapters[c][p])
+                    current_text = sentences[s]
+                    self.current_sentence_words = current_text.split()
+                    self.current_sentence_duration = timing_info.get("speech_duration") or duration
+                    self.current_word_start_time = asyncio.get_event_loop().time()
+                    
+                    word_timings = timing_info.get("word_timings", [])
+                    if word_timings:
+                        self.current_word_timings = word_timings
+                        self.current_word_mapping = timing_info.get("word_mapping")
+                    else:
+                        self.current_word_timings = None
+                        self.current_word_mapping = None
                 elif command_name == 'click_jump':
                     if clicked_position := self._find_sentence_at_click(*data):
                         self.first_sentence_jump = False
