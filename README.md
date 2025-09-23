@@ -46,7 +46,7 @@ sudo apt install ffmpeg
 # Windows: Download from ffmpeg.org and add to PATH
 
 # 2. Install the latest version from PyPI
-pip install lue-reader
+pip install git+https://github.com/superstarryeyes/lue.git
 
 # 3. Practice using Lue with the navigation guide
 lue --guide
