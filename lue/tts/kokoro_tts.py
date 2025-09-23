@@ -202,7 +202,10 @@ class KokoroTTS(TTSBase):
                                 word = token.text
                                 start_time = token.start_ts
                                 end_time = token.end_ts
-                                word_timings.append((word, start_time, end_time))
+                                
+                                # Filter out None values which can cause errors in timing calculations
+                                if start_time is not None and end_time is not None:
+                                    word_timings.append((word, start_time, end_time))
                     
                     return word_timings
                 else:

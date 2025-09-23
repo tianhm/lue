@@ -117,10 +117,19 @@ def adjust_word_timings_for_continuity(word_timings: List[Tuple[str, float, floa
     for i in range(len(word_timings)):
         word, start_time, end_time = word_timings[i]
         
+        # Skip entries with None values
+        if start_time is None or end_time is None:
+            adjusted_word_timings.append((word, start_time, end_time))
+            continue
+        
         # For all words except the last one, use the start time of the next word as end time
         if i < len(word_timings) - 1:
             next_start_time = word_timings[i + 1][1]
-            adjusted_end_time = next_start_time
+            # Only adjust if next start time is not None
+            if next_start_time is not None:
+                adjusted_end_time = next_start_time
+            else:
+                adjusted_end_time = end_time
         else:
             # For the last word, keep the original end time
             adjusted_end_time = end_time
@@ -268,9 +277,18 @@ def validate_timing_data(timing_data: Dict[str, Any]) -> bool:
         if not isinstance(timing, tuple) or len(timing) != 3:
             return False
         word, start_time, end_time = timing
-        if not isinstance(word, str) or not isinstance(start_time, (int, float)) or not isinstance(end_time, (int, float)):
+        if not isinstance(word, str):
             return False
-        if start_time < 0 or end_time < start_time:
+        # Allow None values for start_time and end_time, but if they're not None, they should be numbers
+        if start_time is not None and not isinstance(start_time, (int, float)):
+            return False
+        if end_time is not None and not isinstance(end_time, (int, float)):
+            return False
+        # If both are numbers, check the relationship
+        if isinstance(start_time, (int, float)) and isinstance(end_time, (int, float)) and start_time < 0:
+            return False
+        if (isinstance(start_time, (int, float)) and isinstance(end_time, (int, float)) and 
+            end_time < start_time):
             return False
     
     return True
