@@ -306,17 +306,31 @@ def get_visible_content(reader):
                 
                 if leading_whitespace:
                     highlighted_text.append(leading_whitespace, style=base_style)
-                    
-                words = sentence.lstrip().split()
-                for word_idx, word in enumerate(words):
-                    if word_idx == reader.ui_word_idx:
-                        # Choose highlighting style based on mode: 1=normal, 2=standout
-                        word_style = (COLORS.WORD_HIGHLIGHT_STANDOUT if config.WORD_HIGHLIGHT_MODE == 2 
-                                    else COLORS.WORD_HIGHLIGHT)
-                        highlighted_text.append(word, style=word_style)
+                
+                # Split sentence into tokens (preserving all original text)
+                tokens = sentence.lstrip().split()
+                
+                # Track index of highlightable words only
+                highlightable_word_count = 0
+                
+                for token_idx, token in enumerate(tokens):
+                    if _should_token_be_highlighted(token):
+                        # This token is a word that can be highlighted
+                        if highlightable_word_count == reader.ui_word_idx:
+                            # This is the currently highlighted word
+                            word_style = (COLORS.WORD_HIGHLIGHT_STANDOUT if config.WORD_HIGHLIGHT_MODE == 2 
+                                        else COLORS.WORD_HIGHLIGHT)
+                            highlighted_text.append(token, style=word_style)
+                        else:
+                            # This is a word but not the currently highlighted one
+                            highlighted_text.append(token, style=base_style)
+                        highlightable_word_count += 1
                     else:
-                        highlighted_text.append(word, style=base_style)
-                    if word_idx < len(words) - 1:
+                        # This token should be displayed but not highlighted (punctuation only)
+                        highlighted_text.append(token, style=base_style)
+                    
+                    # Add space after token (except for the last one)
+                    if token_idx < len(tokens) - 1:
                         highlighted_text.append(" ", style=base_style)
             else:
                 # No word highlighting, just apply the base style to the entire sentence
@@ -725,3 +739,36 @@ async def display_ui(reader):
             
         except (IndexError, ValueError):
             pass
+
+def _get_highlightable_words(sentence: str) -> list[str]:
+    """
+    Get list of words that should be considered for highlighting.
+    
+    This function filters out tokens that contain only punctuation/non-alphanumeric
+    characters, which should not be counted as words for highlighting timing.
+    
+    Args:
+        sentence: The sentence to process
+        
+    Returns:
+        List of words that should be highlighted
+    """
+    # Split on whitespace to get tokens
+    tokens = sentence.lstrip().split()
+    
+    # Filter out tokens that contain only punctuation/non-alphanumeric characters
+    words = [token for token in tokens if re.search(r'[a-zA-Z0-9]', token)]
+    
+    return words
+
+def _should_token_be_highlighted(token: str) -> bool:
+    """
+    Determine if a token should be highlighted as a word.
+    
+    Args:
+        token: The token to evaluate
+        
+    Returns:
+        True if token should be highlighted, False otherwise
+    """
+    return bool(re.search(r'[a-zA-Z0-9]', token))

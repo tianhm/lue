@@ -1173,7 +1173,9 @@ class Lue:
 
                     sentences = content_parser.split_into_sentences(self.chapters[c][p])
                     current_text = sentences[s]
-                    self.current_sentence_words = current_text.split()
+                    # Use improved word filtering that excludes punctuation-only tokens
+                    # but still preserves all text visually
+                    self.current_sentence_words = [token for token in current_text.split() if re.search(r'[a-zA-Z0-9]', token)]
                     self.current_sentence_duration = timing_info.get("speech_duration") or duration
                     self.current_word_start_time = asyncio.get_event_loop().time()
                     

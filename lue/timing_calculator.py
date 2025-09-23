@@ -3,7 +3,29 @@ Word-level timing calculation module for the Lue eBook reader.
 """
 
 import logging
+import re
 from typing import List, Tuple, Optional, Dict, Any
+
+def _get_highlightable_words(text: str) -> list[str]:
+    """
+    Get list of words that should be considered for timing.
+    
+    This function filters out tokens that contain only punctuation/non-alphanumeric
+    characters, which should not be counted as words for timing purposes.
+    
+    Args:
+        text: The text to process
+        
+    Returns:
+        List of words that should be timed
+    """
+    # Split on whitespace to get tokens
+    tokens = text.split()
+    
+    # Filter out tokens that contain only punctuation/non-alphanumeric characters
+    words = [token for token in tokens if re.search(r'[a-zA-Z0-9]', token)]
+    
+    return words
 
 
 def create_word_mapping(original_words: List[str], tts_word_timings: List[Tuple[str, float, float]]) -> Optional[List[int]]:
@@ -136,7 +158,8 @@ def estimate_word_timings_from_duration(text: str, total_duration: float) -> Lis
     Returns:
         List of (word, start_time, end_time) tuples
     """
-    words = text.split()
+    # Use the improved word filtering function
+    words = _get_highlightable_words(text)
     if not words:
         return []
     
@@ -158,7 +181,7 @@ def estimate_word_timings_from_duration(text: str, total_duration: float) -> Lis
 def process_tts_timing_data(
     original_text: str,
     raw_word_timings: List[Tuple[str, float, float]],
-    total_duration: float = None
+    total_duration: Optional[float] = None
 ) -> Dict[str, Any]:
     """
     Process raw timing data from TTS into a standardized format with all necessary
@@ -190,8 +213,8 @@ def process_tts_timing_data(
             word_timings = adjust_word_timings_for_continuity(raw_word_timings)
             speech_duration = calculate_speech_duration(word_timings)
         
-        # Create word mapping
-        original_words = original_text.split()
+        # Create word mapping using the improved word filtering
+        original_words = _get_highlightable_words(original_text)
         word_mapping = create_word_mapping(original_words, word_timings)
         
         # Use provided total_duration or fall back to speech_duration
@@ -207,14 +230,16 @@ def process_tts_timing_data(
     except Exception as e:
         logging.error(f"Error processing TTS timing data: {e}", exc_info=True)
         # Return fallback data
-        fallback_duration = len(original_text.split()) * 0.3
+        # Use the improved word filtering function
+        fallback_words = _get_highlightable_words(original_text)
+        fallback_duration = len(fallback_words) * 0.3
         fallback_timings = estimate_word_timings_from_duration(original_text, fallback_duration)
         
         return {
             "word_timings": fallback_timings,
             "speech_duration": fallback_duration,
             "total_duration": fallback_duration,
-            "word_mapping": create_word_mapping(original_text.split(), fallback_timings)
+            "word_mapping": create_word_mapping(fallback_words, fallback_timings)
         }
 
 
