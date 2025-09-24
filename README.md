@@ -9,7 +9,7 @@
 [![Terminal](https://img.shields.io/badge/interface-terminal-blue.svg)](https://github.com/superstarryeyes/lue)
 [![Discord](https://img.shields.io/badge/Discord-Join%20our%20Community-5865F2?logo=discord&logoColor=white)](https://discord.gg/z8sE2gnMNk)
 
-[Features](#-features) • [Quick Start](#-quick-start) • [Installation](#-installation) • [Usage](#-usage) • [Development](#-development)
+[Features](#-features) • [Quick Start](#-quick-start) • [Installation](#-installation) • [Usage](#-usage) • [Customize](#-customize) • [Development](#-development)
 
 <img src="https://github.com/superstarryeyes/lue/blob/main/images/lue-screenshot.gif" alt="Lue Screenshot" width="100%" />
 
@@ -161,6 +161,9 @@ lue --filter path/to/your/book.pdf
 lue --filter 0.15 path/to/your/book.pdf          # Both margins to 15%
 lue --filter 0.12 0.20 path/to/your/book.pdf     # Header 12%, footnote 20%
 
+# Use the Vim keyboard layout
+lue --keys vim path/to/your/book.epub
+
 # Practice using Lue with the navigation guide
 lue --guide
 
@@ -168,7 +171,7 @@ lue --guide
 lue --help
 ```
 
-### Keyboard Controls
+### Keyboard Controls (Default)
 
 <div align="center">
 
@@ -185,6 +188,7 @@ lue --help
 | `y` / `b`                               | Jump directly to the beginning or end of the document for quick navigation                     |
 | `,` / `.`                               | Decrease or increase text-to-speech playback speed (1x to 3x)                                  |
 | `s` / `w`                               | Toggle sentence highlighting or word highlighting on/off                                       |
+| `v`                                     | Cycle through UI complexity modes (Minimal, Medium, Full)                                      |
 
 </div>
 
@@ -193,6 +197,28 @@ lue --help
 - **🖱️ Click** - Jump to sentence
 - **🔄 Scroll** - Navigate content  
 - **📍 Progress bar click** - Jump to position
+
+## 🎨 Customize
+
+Lue offers extensive customization options for both the user interface and keyboard shortcuts to match your preferences and workflow.
+
+### UI Modes
+
+Lue offers three UI complexity modes that you can cycle through using the `v` key or set as your default in the [config.py](lue/config.py) file:
+
+- **Mode 0 (Minimal)** - Clean text-only display with no borders or UI elements
+- **Mode 1 (Medium)** - Displays a top title bar with progress information and borders
+- **Mode 2 (Full)** - Full UI with both top title bar and bottom control information
+
+### Keyboard Layouts
+
+Lue comes with two built-in keyboard layouts that can be set using -k/--key command line option or set as your default in the [config.py](lue/config.py) file. You can create your own keyboard layout by copying and modifying one of the existing layout files:
+
+- **Default Layout** - [keys_default.json](lue/keys_default.json) - Standard keyboard layout
+- **Vim Layout** - [keys_vim.json](lue/keys_vim.json) - Vim-style keyboard layout
+- **Custom Layout** - Customize your own navigation keys by creating your own keyboard layout json file.
+
+Custom layouts must follow the same JSON structure as the built-in layouts, with sections for navigation, TTS controls, display controls, and application controls.
 
 ---
 
