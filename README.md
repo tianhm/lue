@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://github.com/superstarryeyes/lue/blob/main/images/lue-icon.png?raw=true" alt="Lue Icon" width="50%" />
+<img src="https://github.com/superstarryeyes/lue/blob/main/images/lue-icon.png?raw=true" alt="Lue Icon" width="35%" />
 
 ### Lue - Terminal eBook Reader with Text-to-Speech
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
@@ -46,7 +46,7 @@ sudo apt install ffmpeg
 # Windows: Download from ffmpeg.org and add to PATH
 
 # 2. Install the latest version from PyPI
-pip install git+https://github.com/superstarryeyes/lue.git
+pip install lue-reader 
 
 # 3. Practice using Lue with the navigation guide
 lue --guide
@@ -229,6 +229,8 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 <div align="center">
 
 ---
+
+<a title="This tool is Tool of The Week on Terminal Trove, The $HOME of all things in the terminal" href="https://terminaltrove.com/"><img src="https://cdn.terminaltrove.com/media/badges/tool_of_the_week/png/terminal_trove_tool_of_the_week_gold_transparent.png" width="40%" alt="Terminal Trove Tool of The Week" /></a>
 
 *Made with 💖 for CLI enthusiasts and bookworms*
 
