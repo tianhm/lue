@@ -6,8 +6,8 @@
     "prev_sentence": "(",
     "scroll_page_up": "\u0002",
     "scroll_page_down": "\u0006",
-    "scroll_half_page_up": "\u0015",
-    "scroll_half_page_down": "\u0004",
+    "scroll_up": "\u0015",
+    "scroll_down": "\u0004",
     "move_to_top_visible": "H",
     "move_to_beginning": "g",
     "move_to_end": "G"
