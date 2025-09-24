@@ -81,37 +81,47 @@ class UIColors:
     # You can easily add theme presets here:
     @classmethod
     def apply_black_theme(cls):
-        """Apply a dark theme color scheme."""
-        cls.PLAYING_STATUS = "black"
-        cls.PAUSED_STATUS = "black"
-        cls.AUTO_SCROLL_ENABLED = "black"
-        cls.AUTO_SCROLL_DISABLED = "black"
-        cls.CONTROL_KEYS = "black"
-        cls.CONTROL_ICONS = "black"
-        cls.SEPARATORS = "black"
-        cls.PANEL_BORDER = "black"
-        cls.PANEL_TITLE = "black"
-        cls.PROGRESS_BAR = "black"
-        cls.TEXT_NORMAL = "black"
-        cls.TEXT_HIGHLIGHT = "white on black"
-        cls.SELECTION_HIGHLIGHT = "reverse"
-    
-    @classmethod
-    def apply_white_theme(cls):
-        """Apply a light theme color scheme."""
+        """Apply a dark theme color scheme with grayscale only."""
+        # Dark theme base colors - using only grayscale
         cls.PLAYING_STATUS = "white"
         cls.PAUSED_STATUS = "white"
         cls.AUTO_SCROLL_ENABLED = "white"
         cls.AUTO_SCROLL_DISABLED = "white"
         cls.CONTROL_KEYS = "white"
         cls.CONTROL_ICONS = "white"
+        cls.ARROW_ICONS = "white"
+        cls.QUIT_ICON = "white"
         cls.SEPARATORS = "white"
         cls.PANEL_BORDER = "white"
         cls.PANEL_TITLE = "white"
         cls.PROGRESS_BAR = "white"
         cls.TEXT_NORMAL = "white"
-        cls.TEXT_HIGHLIGHT = "bold white"
-        cls.SELECTION_HIGHLIGHT = "reverse"
+        cls.TEXT_HIGHLIGHT = "grey70"
+        cls.WORD_HIGHLIGHT = "white"
+        cls.WORD_HIGHLIGHT_STANDOUT = "black on white"
+        cls.SELECTION_HIGHLIGHT = "on grey50"
+    
+    @classmethod
+    def apply_white_theme(cls):
+        """Apply a light theme color scheme with grayscale only."""
+        # Light theme base colors - using only grayscale
+        cls.PLAYING_STATUS = "black"
+        cls.PAUSED_STATUS = "black"
+        cls.AUTO_SCROLL_ENABLED = "black"
+        cls.AUTO_SCROLL_DISABLED = "black"
+        cls.CONTROL_KEYS = "black"
+        cls.CONTROL_ICONS = "black"
+        cls.ARROW_ICONS = "black"
+        cls.QUIT_ICON = "black"
+        cls.SEPARATORS = "black"
+        cls.PANEL_BORDER = "black"
+        cls.PANEL_TITLE = "black"
+        cls.PROGRESS_BAR = "black"
+        cls.TEXT_NORMAL = "black"
+        cls.TEXT_HIGHLIGHT = "grey30"
+        cls.WORD_HIGHLIGHT = "black"
+        cls.WORD_HIGHLIGHT_STANDOUT = "white on black"
+        cls.SELECTION_HIGHLIGHT = "on grey50"
     
 # Create global instances for easy access
 ICONS = UIIcons()
