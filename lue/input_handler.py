@@ -5,42 +5,54 @@ import subprocess
 import json
 import os
 
-# Load keyboard shortcuts
-KEYBOARD_SHORTCUTS = {}
-try:
-    with open(os.path.join(os.path.dirname(__file__), 'keyboard_shortcuts.json'), 'r') as f:
-        KEYBOARD_SHORTCUTS = json.load(f)
-except Exception:
-    # Fallback to default shortcuts if file cannot be loaded
-    KEYBOARD_SHORTCUTS = {
-        "navigation": {
-            "next_paragraph": "l",
-            "prev_paragraph": "h",
-            "next_sentence": "k",
-            "prev_sentence": "j",
-            "scroll_page_up": "i",
-            "scroll_page_down": "m",
-            "scroll_up": "u",
-            "scroll_down": "n",
-            "move_to_top_visible": "t",
-            "move_to_beginning": "y",
-            "move_to_end": "b"
-        },
-        "tts_controls": {
-            "play_pause": "p",
-            "decrease_speed": ",",
-            "increase_speed": ".",
-            "toggle_sentence_highlight": "s",
-            "toggle_word_highlight": "w"
-        },
-        "display_controls": {
-            "toggle_auto_scroll": "a",
-            "cycle_ui_complexity": "v"
-        },
-        "application": {
-            "quit": "q"
-        }
+# Default keyboard shortcuts
+DEFAULT_KEYBOARD_SHORTCUTS = {
+    "navigation": {
+        "next_paragraph": "l",
+        "prev_paragraph": "h",
+        "next_sentence": "k",
+        "prev_sentence": "j",
+        "scroll_page_up": "i",
+        "scroll_page_down": "m",
+        "scroll_up": "u",
+        "scroll_down": "n",
+        "move_to_top_visible": "t",
+        "move_to_beginning": "y",
+        "move_to_end": "b"
+    },
+    "tts_controls": {
+        "play_pause": "p",
+        "decrease_speed": ",",
+        "increase_speed": ".",
+        "toggle_sentence_highlight": "s",
+        "toggle_word_highlight": "w"
+    },
+    "display_controls": {
+        "toggle_auto_scroll": "a",
+        "cycle_ui_complexity": "v"
+    },
+    "application": {
+        "quit": "q"
     }
+}
+
+# Global variable to store loaded keyboard shortcuts
+KEYBOARD_SHORTCUTS = DEFAULT_KEYBOARD_SHORTCUTS
+
+def load_keyboard_shortcuts(file_path=None):
+    """Load keyboard shortcuts from a JSON file or use defaults."""
+    global KEYBOARD_SHORTCUTS
+    
+    # If no file path provided, use the default file
+    if not file_path:
+        file_path = os.path.join(os.path.dirname(__file__), 'keys_default.json')
+    
+    try:
+        with open(file_path, 'r') as f:
+            KEYBOARD_SHORTCUTS = json.load(f)
+    except Exception:
+        # Fallback to default shortcuts if file cannot be loaded
+        KEYBOARD_SHORTCUTS = DEFAULT_KEYBOARD_SHORTCUTS
 
 def process_input(reader):
     """Process user input from stdin."""

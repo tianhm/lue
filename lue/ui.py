@@ -6,47 +6,14 @@ import json
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
-from . import config, content_parser
+from . import config, content_parser, input_handler
 
 # ================================
 # CENTRALIZED UI CONFIGURATION
 # ================================
-# Load keyboard shortcuts
-KEYBOARD_SHORTCUTS = {}
-try:
-    with open(os.path.join(os.path.dirname(__file__), 'keyboard_shortcuts.json'), 'r') as f:
-        KEYBOARD_SHORTCUTS = json.load(f)
-except Exception:
-    # Fallback to default shortcuts if file cannot be loaded
-    KEYBOARD_SHORTCUTS = {
-        "navigation": {
-            "next_paragraph": "l",
-            "prev_paragraph": "h",
-            "next_sentence": "k",
-            "prev_sentence": "j",
-            "scroll_page_up": "i",
-            "scroll_page_down": "m",
-            "scroll_up": "u",
-            "scroll_down": "n",
-            "move_to_top_visible": "t",
-            "move_to_beginning": "y",
-            "move_to_end": "b"
-        },
-        "tts_controls": {
-            "play_pause": "p",
-            "decrease_speed": ",",
-            "increase_speed": ".",
-            "toggle_sentence_highlight": "s",
-            "toggle_word_highlight": "w"
-        },
-        "display_controls": {
-            "toggle_auto_scroll": "a",
-            "cycle_ui_complexity": "v"
-        },
-        "application": {
-            "quit": "q"
-        }
-    }
+# Function to get current keyboard shortcuts
+def get_keyboard_shortcuts():
+    return input_handler.KEYBOARD_SHORTCUTS
 
 class UIIcons:
     """Central place to configure all UI icons and separators."""
@@ -449,10 +416,11 @@ def get_compact_subtitle(reader, width):
     speed_indicator = reader._get_speed_display() if hasattr(reader, '_get_speed_display') else ""
     
     # Get keyboard shortcuts
-    nav_shortcuts = KEYBOARD_SHORTCUTS.get("navigation", {})
-    tts_shortcuts = KEYBOARD_SHORTCUTS.get("tts_controls", {})
-    display_shortcuts = KEYBOARD_SHORTCUTS.get("display_controls", {})
-    app_shortcuts = KEYBOARD_SHORTCUTS.get("application", {})
+    keyboard_shortcuts = get_keyboard_shortcuts()
+    nav_shortcuts = keyboard_shortcuts.get("navigation", {})
+    tts_shortcuts = keyboard_shortcuts.get("tts_controls", {})
+    display_shortcuts = keyboard_shortcuts.get("display_controls", {})
+    app_shortcuts = keyboard_shortcuts.get("application", {})
     
     # Control text with centralized colors using loaded shortcuts
     prev_para_key = nav_shortcuts.get("prev_paragraph", "h")

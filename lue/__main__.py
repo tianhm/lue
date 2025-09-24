@@ -17,8 +17,28 @@ except ImportError:
     from importlib_resources import files
 from rich.console import Console
 from .reader import Lue
-from . import config, progress_manager
+from . import config, progress_manager, input_handler
 from .tts_manager import TTSManager, get_default_tts_model_name
+
+def get_keyboard_shortcuts_file(keys_arg):
+    """Resolve the keyboard shortcuts file path from the command line argument."""
+    # If it's a direct file path that exists, use it
+    if os.path.isfile(keys_arg):
+        return keys_arg
+    
+    # If it's a preset name, look for keys_{name}.json in the lue directory
+    preset_file = os.path.join(os.path.dirname(__file__), f'keys_{keys_arg}.json')
+    if os.path.isfile(preset_file):
+        return preset_file
+    
+    # If it's the special "default" name, use keys_default.json
+    if keys_arg == "default":
+        default_file = os.path.join(os.path.dirname(__file__), 'keys_default.json')
+        if os.path.isfile(default_file):
+            return default_file
+    
+    # Fallback to default
+    return os.path.join(os.path.dirname(__file__), 'keys_default.json')
 
 def get_guide_file_path():
     """Get the path to the guide file, creating a temporary file if needed for packaged installs."""
@@ -149,6 +169,12 @@ async def main():
         "-o", "--over", type=float, help="Seconds of overlap between sentences"
     )
     
+    parser.add_argument(
+        "-k", "--keys",
+        help="Keyboard configuration. Use a preset name (vim, default) or a path to a JSON file. Default: default",
+        default="default"
+    )
+    
     if available_tts:
         # Add "none" option to available TTS choices
         tts_choices = ["none"] + available_tts
@@ -249,6 +275,12 @@ async def main():
             logging.error(f"Required tool '{tool}' not found. FFmpeg may not be installed.")
             sys.exit(1)
 
+    # Resolve keyboard shortcuts file
+    keyboard_shortcuts_file = get_keyboard_shortcuts_file(args.keys)
+    
+    # Load keyboard shortcuts
+    input_handler.load_keyboard_shortcuts(keyboard_shortcuts_file)
+    
     tts_instance = None
     if available_tts and hasattr(args, 'tts') and args.tts and args.tts != "none":
         voice = args.voice if hasattr(args, 'voice') else None
