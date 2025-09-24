@@ -40,7 +40,10 @@ DEFAULT_KEYBOARD_SHORTCUTS = {
 KEYBOARD_SHORTCUTS = DEFAULT_KEYBOARD_SHORTCUTS
 
 def load_keyboard_shortcuts(file_path=None):
-    """Load keyboard shortcuts from a JSON file or use defaults."""
+    """Load keyboard shortcuts from a JSON file or use defaults.
+    
+    If file_path is None, the function will attempt to load from the default locations.
+    """
     global KEYBOARD_SHORTCUTS
     
     # If no file path provided, use the default file

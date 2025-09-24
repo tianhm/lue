@@ -276,7 +276,13 @@ async def main():
             sys.exit(1)
 
     # Resolve keyboard shortcuts file
-    keyboard_shortcuts_file = get_keyboard_shortcuts_file(args.keys)
+    # Check if custom keyboard shortcuts are configured
+    if config.CUSTOM_KEYBOARD_SHORTCUTS:
+        # Use the config value, which can be "default", "vim", or a file path
+        keyboard_shortcuts_file = get_keyboard_shortcuts_file(config.CUSTOM_KEYBOARD_SHORTCUTS)
+    else:
+        # Use command-line argument or its default
+        keyboard_shortcuts_file = get_keyboard_shortcuts_file(args.keys)
     
     # Load keyboard shortcuts
     input_handler.load_keyboard_shortcuts(keyboard_shortcuts_file)

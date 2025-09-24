@@ -220,6 +220,25 @@ Lue comes with two built-in keyboard layouts that can be set using -k/--key comm
 
 Custom layouts must follow the same JSON structure as the built-in layouts, with sections for navigation, TTS controls, display controls, and application controls.
 
+To set a keyboard layout as the default for all sessions, you can configure the `CUSTOM_KEYBOARD_SHORTCUTS` option in [config.py](lue/config.py):
+
+```
+# Keyboard settings
+# Can be set to "default", "vim", or a path to a custom keyboard shortcuts JSON file
+# None will use the command-line argument or default
+CUSTOM_KEYBOARD_SHORTCUTS = None
+```
+
+For example, to always use the vim layout by default:
+```
+CUSTOM_KEYBOARD_SHORTCUTS = "vim"
+```
+
+Or to use a custom layout file:
+```
+CUSTOM_KEYBOARD_SHORTCUTS = "/path/to/your/custom_keyboard.json"
+```
+
 ---
 
 ## 🧩 Development

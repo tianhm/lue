@@ -52,3 +52,7 @@ UI_COMPLEXITY_MODE = 2  # 0=minimal (text only), 1=medium (top bar only), 2=full
 # Highlighting settings
 SENTENCE_HIGHLIGHTING_ENABLED = True  # Enable sentence-level highlighting
 WORD_HIGHLIGHT_MODE = 1  # 0=off, 1=normal highlighting, 2=standout highlighting
+
+# Keyboard settings
+# Can be set to "default", "vim", or a path to a custom keyboard shortcuts JSON file
+CUSTOM_KEYBOARD_SHORTCUTS = "default"
