@@ -1,12 +1,13 @@
 import asyncio
 import os
 import sys
+import platform
 import re
-import json
 from rich.console import Console
-from rich.panel import Panel
 from rich.text import Text
-from . import config, content_parser, input_handler
+from rich.panel import Panel
+from . import input_handler, config
+from . import content_parser
 
 # ================================
 # CENTRALIZED UI CONFIGURATION
@@ -423,17 +424,18 @@ def get_compact_subtitle(reader, width):
     app_shortcuts = keyboard_shortcuts.get("application", {})
     
     # Control text with centralized colors using loaded shortcuts
-    prev_para_key = nav_shortcuts.get("prev_paragraph", "h")
-    next_para_key = nav_shortcuts.get("next_paragraph", "l")
-    prev_sent_key = nav_shortcuts.get("prev_sentence", "j")
-    next_sent_key = nav_shortcuts.get("next_sentence", "k")
-    scroll_up_key = nav_shortcuts.get("scroll_up", "u")
-    scroll_down_key = nav_shortcuts.get("scroll_down", "n")
-    page_up_key = nav_shortcuts.get("scroll_page_up", "i")
-    page_down_key = nav_shortcuts.get("scroll_page_down", "m")
-    quit_key = app_shortcuts.get("quit", "q")
-    auto_scroll_key = display_shortcuts.get("toggle_auto_scroll", "a")
-    top_visible_key = nav_shortcuts.get("move_to_top_visible", "t")
+    # Apply formatting to make control characters readable
+    prev_para_key = format_key_for_display(nav_shortcuts.get("prev_paragraph", "h"))
+    next_para_key = format_key_for_display(nav_shortcuts.get("next_paragraph", "l"))
+    prev_sent_key = format_key_for_display(nav_shortcuts.get("prev_sentence", "j"))
+    next_sent_key = format_key_for_display(nav_shortcuts.get("next_sentence", "k"))
+    scroll_up_key = format_key_for_display(nav_shortcuts.get("scroll_up", "u"))
+    scroll_down_key = format_key_for_display(nav_shortcuts.get("scroll_down", "n"))
+    page_up_key = format_key_for_display(nav_shortcuts.get("scroll_page_up", "i"))
+    page_down_key = format_key_for_display(nav_shortcuts.get("scroll_page_down", "m"))
+    quit_key = format_key_for_display(app_shortcuts.get("quit", "q"))
+    auto_scroll_key = format_key_for_display(display_shortcuts.get("toggle_auto_scroll", "a"))
+    top_visible_key = format_key_for_display(nav_shortcuts.get("move_to_top_visible", "t"))
     
     nav_text_1 = f"[{COLORS.CONTROL_KEYS}]{prev_para_key}{ICONS.SEPARATOR}{prev_sent_key}[/{COLORS.CONTROL_KEYS}]"
     nav_text_2 = f"[{COLORS.CONTROL_KEYS}]{next_sent_key}{ICONS.SEPARATOR}{next_para_key}[/{COLORS.CONTROL_KEYS}]"
@@ -454,7 +456,7 @@ def get_compact_subtitle(reader, width):
         base_sep = ICONS.LINE_SEPARATOR_LONG
         
         # Construct status part with proper spacing
-        pause_key = tts_shortcuts.get("play_pause", "p")
+        pause_key = format_key_for_display(tts_shortcuts.get("play_pause", "p"))
         if speed_indicator:
             status_part = f"[{COLORS.CONTROL_KEYS}]{pause_key}[/{COLORS.CONTROL_KEYS}] {status_icon} {speed_indicator} {status_text}"
         else:
@@ -489,7 +491,7 @@ def get_compact_subtitle(reader, width):
         separator = ICONS.LINE_SEPARATOR_LONG
         
         # Construct status part with proper spacing
-        pause_key = tts_shortcuts.get("play_pause", "p")
+        pause_key = format_key_for_display(tts_shortcuts.get("play_pause", "p"))
         if speed_indicator:
             icon_status = f"[{COLORS.CONTROL_KEYS}]{pause_key}[/{COLORS.CONTROL_KEYS}] {status_icon}{speed_indicator}"
         else:
@@ -512,7 +514,7 @@ def get_compact_subtitle(reader, width):
         separator = ICONS.LINE_SEPARATOR_MEDIUM
         
         # Construct status part with proper spacing
-        pause_key = tts_shortcuts.get("play_pause", "p")
+        pause_key = format_key_for_display(tts_shortcuts.get("play_pause", "p"))
         if speed_indicator:
             icon_status = f"[{COLORS.CONTROL_KEYS}]{pause_key}[/{COLORS.CONTROL_KEYS}] {status_icon}{speed_indicator}"
         else:
@@ -535,7 +537,7 @@ def get_compact_subtitle(reader, width):
         separator = ICONS.LINE_SEPARATOR_SHORT
         
         # Construct status part with proper spacing
-        pause_key = tts_shortcuts.get("play_pause", "p")
+        pause_key = format_key_for_display(tts_shortcuts.get("play_pause", "p"))
         if speed_indicator:
             icon_status = f"[{COLORS.CONTROL_KEYS}]{pause_key}[/{COLORS.CONTROL_KEYS}] {status_icon}{speed_indicator}"
         else:
@@ -740,3 +742,15 @@ def _should_token_be_highlighted(token: str) -> bool:
         True if token should be highlighted, False otherwise
     """
     return bool(re.search(r'[a-zA-Z0-9]', token))
+
+def format_key_for_display(key):
+    """Convert control characters to caret notation for UI display."""
+    if isinstance(key, str) and len(key) == 1:
+        # Check if it's a control character (ASCII 0-31)
+        char_code = ord(key)
+        if 0 <= char_code <= 31:
+            # Convert to caret notation with lowercase letter (^b, ^d, ^f, ^u)
+            # This represents the actual key combination without shift
+            return f"^{chr(char_code + 96)}"  # +96 to get lowercase letters
+    # Return the key as is if it's not a control character
+    return key
