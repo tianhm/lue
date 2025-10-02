@@ -136,7 +136,10 @@ def clean_text_for_tts(text):
     text = re.sub(r'\s+', ' ', text)  # Multiple spaces -> single space
     text = re.sub(r'\n\s*\n\s*\n+', '\n\n', text)  # Multiple newlines -> double newline max
     
-    # 7. Remove markdown formatting
+    # 7. Ensure proper spacing around ellipsis (after whitespace cleanup)
+    text = re.sub(r'\.\.\.(?=\S)', '... ', text)  # Add space after ellipsis if missing
+    
+    # 8. Remove markdown formatting
     text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)  # **bold** -> bold
     text = re.sub(r'\*([^*]+)\*', r'\1', text)      # *italic* -> italic
     text = re.sub(r'__([^_]+)__', r'\1', text)      # __bold__ -> bold
@@ -154,7 +157,7 @@ def clean_text_for_tts(text):
     # Remove markdown headers (# symbols)
     text = re.sub(r'^#{1,6}\s+', '', text, flags=re.MULTILINE)  # # Header -> Header
     
-    # 8. Fix common formatting issues (but preserve ellipsis)
+    # 9. Fix common formatting issues (but preserve ellipsis)
     text = re.sub(r'\s+([,!?;:])', r'\1', text)  # Remove space before punctuation (except dots)
     text = re.sub(r'([,!?;:])\s*([,!?;:])', r'\1 \2', text)  # Ensure space between punctuation
     
