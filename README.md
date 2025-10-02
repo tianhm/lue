@@ -9,7 +9,7 @@
 [![Terminal](https://img.shields.io/badge/interface-terminal-blue.svg)](https://github.com/superstarryeyes/lue)
 [![Discord](https://img.shields.io/badge/Discord-Join%20our%20Community-5865F2?logo=discord&logoColor=white)](https://discord.gg/z8sE2gnMNk)
 
-[Features](#-features) • [Quick Start](#-quick-start) • [Installation](#-installation) • [Usage](#-usage) • [Customize](#-customize) • [Development](#-development)
+[Features](#-features) • [Quick Start](#-quick-start) • [Installation](#-installation) • [Usage](#-usage) • [Customize](#️-customize) • [Development](#-development)
 
 <img src="https://github.com/superstarryeyes/lue/blob/main/images/lue-screenshot.gif" alt="Lue Screenshot" width="100%" />
 
@@ -25,11 +25,10 @@
 | **👄 Modular TTS System**               | Edge TTS (default) and Kokoro TTS (local/offline) with extensible architecture for new models  |
 | **🌍 Cross-Platform & Multilingual**    | Full support for macOS, Linux, Windows with 100+ languages and consistent global experience    |
 | **🎛️ Speed Adjustment**                 | Adjust text-to-speech playback speed from 1x to 3x for personalized listening experience       |
-| **🎯 Precise Word Highlighting**        | Word-level highlighting synchronized with actual speech, improving focus and concentration     |
-| **🌌 Rich Terminal UI**                 | Clean, responsive interface with customizable color themes and full mouse & keyboard support   |
+| **🎯 Auto-Scroll & Precise Word Highlighting**        | Automatic scrolling and word-level highlighting synchronized with actual speech, improving focus and concentration     |
 | **💾 Smart Persistence**                | Automatic progress saving, state restoration, and cross-session continuity for seamless reading|
-| **⚡️ Fast Navigation**                  | Intuitive shortcuts, flexible controls, and optional smooth scrolling for efficient book navigation     |
-
+| **⚡️ Fast Navigation**                  | Intuitive shortcuts, flexible controls, mouse support and optional smooth scrolling for efficient book navigation     |
+| **⚙️ Extensive Customization**          | Fully customizable keyboard layouts (including Vim-style bindings), adjustable UI elements, colors, and display modes|
 
 ---
 
@@ -37,7 +36,7 @@
 
 > **Want to try Lue right away?** Follow these simple steps:
 
-```bash
+```
 # 1. Install FFmpeg (required for audio processing)
 # macOS
 brew install ffmpeg
@@ -164,7 +163,7 @@ lue --filter 0.12 0.20 path/to/your/book.pdf     # Header 12%, footnote 20%
 # Use the Vim keyboard layout
 lue --keys vim path/to/your/book.epub
 
-# Practice using Lue with the navigation guide
+# Practice Lue default keys with the navigation guide
 lue --guide
 
 # View available options
@@ -198,9 +197,7 @@ lue --help
 - **🔄 Scroll** - Navigate content  
 - **📍 Progress bar click** - Jump to position
 
-## 🎨 Customize
-
-Lue offers extensive customization options for both the user interface and keyboard shortcuts to match your preferences and workflow.
+## ⚙️ Customize
 
 ### UI Modes
 
@@ -210,34 +207,23 @@ Lue offers three UI complexity modes that you can cycle through using the `v` ke
 - **Mode 1 (Medium)** - Displays a top title bar with progress information and borders
 - **Mode 2 (Full)** - Full UI with both top title bar and bottom control information
 
+Additionally, Lue provides customizable word-level and sentence-level highlighting that can be adjusted to suit your reading preferences. You can cycle through different highlighting modes using the `w` and `s` keys. These highlighting settings can also be configured as defaults in the [config.py](lue/config.py) file.
+
 ### Keyboard Layouts
 
 Lue comes with two built-in keyboard layouts that can be set using -k/--key command line option or set as your default in the [config.py](lue/config.py) file. You can create your own keyboard layout by copying and modifying one of the existing layout files:
 
 - **Default Layout** - [keys_default.json](lue/keys_default.json) - Standard keyboard layout
 - **Vim Layout** - [keys_vim.json](lue/keys_vim.json) - Vim-style keyboard layout
-- **Custom Layout** - Customize your own navigation keys by creating your own keyboard layout json file.
+- **Custom Layout** - Customize your own navigation keys by creating your own keyboard layout json file
 
-Custom layouts must follow the same JSON structure as the built-in layouts, with sections for navigation, TTS controls, display controls, and application controls.
+### Color Themes
 
-To set a keyboard layout as the default for all sessions, you can configure the `CUSTOM_KEYBOARD_SHORTCUTS` option in [config.py](lue/config.py):
+Lue allows you to customize the color theme, visual icons/symbols and all ui elements of the interface by modifying the classes in [ui.py](lue/ui.py). Create your own theme or choose one of the three themes that come with the default installation.
 
-```
-# Keyboard settings
-# Can be set to "default", "vim", or a path to a custom keyboard shortcuts JSON file
-# None will use the command-line argument or default
-CUSTOM_KEYBOARD_SHORTCUTS = None
-```
-
-For example, to always use the vim layout by default:
-```
-CUSTOM_KEYBOARD_SHORTCUTS = "vim"
-```
-
-Or to use a custom layout file:
-```
-CUSTOM_KEYBOARD_SHORTCUTS = "/path/to/your/custom_keyboard.json"
-```
+- **Default Theme** - The default colorful theme with various colors for different UI elements
+- **Black Theme** - A dark monochrome theme that's suitable for bright backgrounds
+- **White Theme** - A light monochrome theme that's suitable for dark backgrounds
 
 ---
 
@@ -261,24 +247,28 @@ Check out the [Developer Guide](DEVELOPER.md) for instructions on adding new TTS
 
 ---
 
+## 🛠️ Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+Join our Discord community for discussions, support and collaboration for creating modules for new TTS models!
+
+[![Join our Discord](https://img.shields.io/badge/Discord-Join%20Us-5865F2?logo=discord&style=for-the-badge)](https://discord.gg/z8sE2gnMNk)
+
+---
+
 ## 📄 License
 
 This project is licensed under the **GPL-3.0 License** - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🛠️ Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
 <div align="center">
-
----
 
 <a title="This tool is Tool of The Week on Terminal Trove, The $HOME of all things in the terminal" href="https://terminaltrove.com/"><img src="https://cdn.terminaltrove.com/media/badges/tool_of_the_week/png/terminal_trove_tool_of_the_week_gold_transparent.png" width="40%" alt="Terminal Trove Tool of The Week" /></a>
 
 *Made with 💖 for CLI enthusiasts and bookworms*
 
-**[⭐ Star this repo](https://github.com/superstarryeyes/lue)** if you find it useful!
+**⭐ Star this repo** if you find it useful!
 
 </div>
