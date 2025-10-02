@@ -3,6 +3,7 @@ import platform
 import warnings
 import asyncio
 import logging
+import re
 from rich.console import Console
 
 from .base import TTSBase
@@ -205,7 +206,10 @@ class KokoroTTS(TTSBase):
                                 
                                 # Filter out None values which can cause errors in timing calculations
                                 if start_time is not None and end_time is not None:
-                                    word_timings.append((word, start_time, end_time))
+                                    # Only include tokens that contain alphanumeric characters
+                                    # This ensures consistency with the timing calculator and UI
+                                    if re.search(r'[a-zA-Z0-9]', word):
+                                        word_timings.append((word, start_time, end_time))
                     
                     return word_timings
                 else:

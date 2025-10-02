@@ -28,10 +28,42 @@ def _get_highlightable_words(text: str) -> list[str]:
     return words
 
 
+def _extract_core_word(token: str) -> str:
+    """
+    Extract the core word from a token by removing surrounding punctuation.
+    
+    This function is more robust than simple strip() as it handles nested
+    punctuation and preserves internal punctuation like contractions.
+    
+    Args:
+        token: The token to process
+        
+    Returns:
+        The core word without surrounding punctuation
+    """
+    if not token:
+        return token
+    
+    # Remove leading punctuation
+    start = 0
+    while start < len(token) and not token[start].isalnum():
+        start += 1
+    
+    # Remove trailing punctuation
+    end = len(token) - 1
+    while end >= start and not token[end].isalnum():
+        end -= 1
+    
+    if start <= end:
+        return token[start:end + 1]
+    else:
+        return ""
+
+
 def create_word_mapping(original_words: List[str], tts_word_timings: List[Tuple[str, float, float]]) -> Optional[List[int]]:
     """
     Create a mapping from original word indices to TTS word timing indices.
-    This handles cases where TTS combines words (e.g., "Chapter 1" -> "Chapter 1").
+    This handles cases where TTS combines words or processes punctuation differently.
     
     Args:
         original_words: List of words from the original text
@@ -51,58 +83,102 @@ def create_word_mapping(original_words: List[str], tts_word_timings: List[Tuple[
     if len(original_words) == len(tts_words):
         return list(range(len(original_words)))
     
-    # Handle mismatched counts by trying to map words intelligently
+    # Create a more robust mapping algorithm
     mapping = []
     tts_index = 0
+    
+    # Extract core words for better matching
+    orig_core_words = [_extract_core_word(word) for word in original_words]
+    tts_core_words = [_extract_core_word(word) for word in tts_words]
     
     for orig_index, orig_word in enumerate(original_words):
         if tts_index >= len(tts_words):
             # No more TTS words, map to the last one
-            mapping.append(len(tts_words) - 1)
+            mapping.append(max(0, len(tts_words) - 1))
             continue
-            
-        tts_word = tts_words[tts_index]
         
-        # Check if the original word is contained in the current TTS word
-        # Remove punctuation for comparison
-        orig_clean = orig_word.strip('.,!?;:"()[]{}')
-        tts_clean = tts_word.strip('.,!?;:"()[]{}')
+        orig_core = orig_core_words[orig_index]
         
-        if orig_clean.lower() in tts_clean.lower():
-            # This original word is part of the current TTS word
-            mapping.append(tts_index)
+        # Skip empty core words (pure punctuation)
+        if not orig_core:
+            # Map punctuation to the previous word's timing, or current if first
+            if mapping:
+                mapping.append(mapping[-1])
+            else:
+                mapping.append(0)
+            continue
+        
+        # Find the best matching TTS word
+        best_match_index = None
+        best_match_score = 0
+        
+        # Look ahead in TTS words to find the best match
+        search_range = min(len(tts_words), tts_index + 5)
+        for search_idx in range(tts_index, search_range):
+            tts_core = tts_core_words[search_idx]
             
-            # Check if this TTS word contains multiple original words
-            # by looking ahead to see if the next original word is also in this TTS word
-            if (orig_index + 1 < len(original_words) and 
-                tts_index < len(tts_words)):
-                next_orig = original_words[orig_index + 1].strip('.,!?;:"()[]{}')
-                if next_orig.lower() not in tts_clean.lower():
-                    # Next original word is not in this TTS word, move to next TTS word
-                    tts_index += 1
+            if not tts_core:
+                continue
+                
+            # Calculate match score
+            score = 0
+            if orig_core.lower() == tts_core.lower():
+                score = 100  # Perfect match
+            elif orig_core.lower() in tts_core.lower():
+                score = 80   # Original word is contained in TTS word
+            elif tts_core.lower() in orig_core.lower():
+                score = 60   # TTS word is contained in original word
+            elif _words_similar(orig_core.lower(), tts_core.lower()):
+                score = 40   # Similar words (for handling slight differences)
+            
+            if score > best_match_score:
+                best_match_score = score
+                best_match_index = search_idx
+        
+        if best_match_index is not None:
+            mapping.append(best_match_index)
+            
+            # Only advance tts_index if we found a good match and it's not too far ahead
+            if best_match_index <= tts_index + 2:
+                tts_index = best_match_index + 1
         else:
-            # Try to find the original word in subsequent TTS words
-            found = False
-            for look_ahead in range(tts_index, min(tts_index + 3, len(tts_words))):
-                look_ahead_tts = tts_words[look_ahead].strip('.,!?;:"()[]{}')
-                if orig_clean.lower() in look_ahead_tts.lower():
-                    mapping.append(look_ahead)
-                    tts_index = look_ahead + 1
-                    found = True
-                    break
-            
-            if not found:
-                # Fallback: map to current TTS word
-                mapping.append(tts_index)
-                tts_index += 1
+            # No good match found, use current TTS index
+            mapping.append(tts_index)
+            tts_index += 1
     
     return mapping
 
 
+def _words_similar(word1: str, word2: str) -> bool:
+    """
+    Check if two words are similar (for handling slight differences in tokenization).
+    
+    Args:
+        word1: First word to compare
+        word2: Second word to compare
+        
+    Returns:
+        True if words are similar, False otherwise
+    """
+    if not word1 or not word2:
+        return False
+    
+    # Check if one word is a substring of the other with small differences
+    if len(word1) >= 3 and len(word2) >= 3:
+        if word1 in word2 or word2 in word1:
+            return True
+    
+    # Check for common prefixes/suffixes
+    if len(word1) >= 4 and len(word2) >= 4:
+        if (word1[:3] == word2[:3] and abs(len(word1) - len(word2)) <= 2):
+            return True
+    
+    return False
+
+
 def adjust_word_timings_for_continuity(word_timings: List[Tuple[str, float, float]]) -> List[Tuple[str, float, float]]:
     """
-    Adjust word timings to ensure continuity - end time of one word 
-    should match start time of the next word.
+    Adjust word timings to ensure continuity and handle timing inconsistencies.
     
     Args:
         word_timings: List of (word, start_time, end_time) tuples
@@ -114,20 +190,52 @@ def adjust_word_timings_for_continuity(word_timings: List[Tuple[str, float, floa
         return word_timings
     
     adjusted_word_timings = []
-    for i in range(len(word_timings)):
-        word, start_time, end_time = word_timings[i]
+    
+    # First pass: fix any obviously broken timings
+    cleaned_timings = []
+    for i, (word, start_time, end_time) in enumerate(word_timings):
+        # Skip entries with None values
+        if start_time is None or end_time is None:
+            cleaned_timings.append((word, start_time, end_time))
+            continue
+            
+        # Fix backwards timings
+        if end_time < start_time:
+            # Swap them or use a small duration
+            if start_time > 0:
+                end_time = start_time + 0.1
+            else:
+                start_time, end_time = end_time, start_time + 0.1
+        
+        # Ensure minimum duration
+        if end_time - start_time < 0.05:  # Minimum 50ms
+            end_time = start_time + 0.05
+            
+        cleaned_timings.append((word, start_time, end_time))
+    
+    # Second pass: ensure continuity
+    for i in range(len(cleaned_timings)):
+        word, start_time, end_time = cleaned_timings[i]
         
         # Skip entries with None values
         if start_time is None or end_time is None:
             adjusted_word_timings.append((word, start_time, end_time))
             continue
         
-        # For all words except the last one, use the start time of the next word as end time
-        if i < len(word_timings) - 1:
-            next_start_time = word_timings[i + 1][1]
-            # Only adjust if next start time is not None
+        # For all words except the last one, adjust end time for continuity
+        if i < len(cleaned_timings) - 1:
+            next_word, next_start_time, next_end_time = cleaned_timings[i + 1]
+            
+            # Only adjust if next start time is valid
             if next_start_time is not None:
-                adjusted_end_time = next_start_time
+                # If there's a gap, extend current word to fill it
+                if next_start_time > end_time:
+                    adjusted_end_time = next_start_time
+                # If there's overlap, split the difference
+                elif next_start_time < end_time:
+                    adjusted_end_time = (end_time + next_start_time) / 2
+                else:
+                    adjusted_end_time = end_time
             else:
                 adjusted_end_time = end_time
         else:
@@ -218,6 +326,9 @@ def process_tts_timing_data(
             word_timings = estimate_word_timings_from_duration(original_text, total_duration)
             speech_duration = total_duration
         else:
+            # Log raw timing data for debugging
+            logging.debug(f"Processing {len(raw_word_timings)} raw timing entries for text: '{original_text[:50]}...'")
+            
             # Adjust raw timings for continuity
             word_timings = adjust_word_timings_for_continuity(raw_word_timings)
             speech_duration = calculate_speech_duration(word_timings)
@@ -225,6 +336,12 @@ def process_tts_timing_data(
         # Create word mapping using the improved word filtering
         original_words = _get_highlightable_words(original_text)
         word_mapping = create_word_mapping(original_words, word_timings)
+        
+        # Log mapping information for debugging
+        if word_mapping:
+            logging.debug(f"Created word mapping: {len(original_words)} original words -> {len(word_timings)} TTS timings")
+            if len(original_words) != len(word_timings):
+                logging.debug(f"Word count mismatch - Original: {original_words}, TTS: {[w for w, _, _ in word_timings]}")
         
         # Use provided total_duration or fall back to speech_duration
         final_total_duration = total_duration if total_duration is not None else speech_duration

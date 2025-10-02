@@ -753,6 +753,38 @@ def _should_token_be_highlighted(token: str) -> bool:
     """
     return bool(re.search(r'[a-zA-Z0-9]', token))
 
+
+def _extract_core_word(token: str) -> str:
+    """
+    Extract the core word from a token by removing surrounding punctuation.
+    
+    This function is more robust than simple strip() as it handles nested
+    punctuation and preserves internal punctuation like contractions.
+    
+    Args:
+        token: The token to process
+        
+    Returns:
+        The core word without surrounding punctuation
+    """
+    if not token:
+        return token
+    
+    # Remove leading punctuation
+    start = 0
+    while start < len(token) and not token[start].isalnum():
+        start += 1
+    
+    # Remove trailing punctuation
+    end = len(token) - 1
+    while end >= start and not token[end].isalnum():
+        end -= 1
+    
+    if start <= end:
+        return token[start:end + 1]
+    else:
+        return ""
+
 def format_key_for_display(key):
     """Convert control characters to caret notation for UI display."""
     if isinstance(key, str) and len(key) == 1:
