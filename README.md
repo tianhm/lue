@@ -3,10 +3,10 @@
 <img src="https://github.com/superstarryeyes/lue/blob/main/images/lue-icon.png?raw=true" alt="Lue Icon" width="35%" />
 
 ### Lue - Terminal eBook Reader with Text-to-Speech
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey)](https://github.com/superstarryeyes/lue)
-[![Terminal](https://img.shields.io/badge/interface-terminal-blue.svg)](https://github.com/superstarryeyes/lue)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-86c9fa.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Python](https://img.shields.io/badge/python-3.10+-86c9fa.svg)](https://www.python.org/downloads/)
+[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows%20(WSL)-86c9fa)](https://github.com/superstarryeyes/lue)
+[![Terminal](https://img.shields.io/badge/interface-terminal-86c9fa.svg)](https://github.com/superstarryeyes/lue)
 [![Discord](https://img.shields.io/badge/Discord-Join%20our%20Community-5865F2?logo=discord&logoColor=white)](https://discord.gg/z8sE2gnMNk)
 
 [Features](#-features) • [Quick Start](#-quick-start) • [Installation](#-installation) • [Usage](#-usage) • [Customize](#️-customize) • [Development](#-development)
@@ -23,7 +23,7 @@
 | --------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | **📖 Multi-Format Support**             | Support for EPUB, PDF, TXT, DOCX, DOC, HTML, RTF, and Markdown with seamless format detection  |
 | **👄 Modular TTS System**               | Edge TTS (default) and Kokoro TTS (local/offline) with extensible architecture for new models  |
-| **🌍 Cross-Platform & Multilingual**    | Full support for macOS, Linux, Windows with 100+ languages and consistent global experience    |
+| **🌍 Cross-Platform & Multilingual**    | Full support for macOS, Linux, Windows (via WSL) with 100+ languages and consistent global experience    |
 | **🎛️ Speed Adjustment**                 | Adjust text-to-speech playback speed from 1x to 3x for personalized listening experience       |
 | **🎯 Auto-Scroll & Precise Word Highlighting**        | Automatic scrolling and word-level highlighting synchronized with actual speech, improving focus and concentration     |
 | **💾 Smart Persistence**                | Automatic progress saving, state restoration, and cross-session continuity for seamless reading|
@@ -32,17 +32,16 @@
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start (macOS and Linux)
 
 > **Want to try Lue right away?** Follow these simple steps:
 
-```
+```bash
 # 1. Install FFmpeg (required for audio processing)
 # macOS
 brew install ffmpeg
 # Ubuntu/Debian  
 sudo apt install ffmpeg
-# Windows: Download from ffmpeg.org and add to PATH
 
 # 2. Install the latest version from PyPI
 pip install lue-reader 
@@ -58,7 +57,7 @@ lue path/to/your/book.epub
 
 ---
 
-## 📦 Installation
+## 📦 Installation (macOS, Linux and Windows)
 
 ### Prerequisites
 
@@ -84,7 +83,20 @@ sudo apt install espeak antiword
 ```
 
 #### Windows
-Download FFmpeg from [ffmpeg.org](https://ffmpeg.org/download.html) and add to PATH.
+```bash
+# 1. Install WSL
+# Open PowerShell as Administrator:
+wsl --install
+
+# 2. Restart your PC if prompted, then launch Ubuntu from Start Menu
+
+# 3. Inside Ubuntu terminal:
+sudo apt update && sudo apt upgrade -y
+sudo apt install ffmpeg python3 python3-pip -y
+# Optional  
+sudo apt install espeak antiword
+
+```
 
 ### Install Lue
 
@@ -138,6 +150,12 @@ lue path/to/your/book.epub
 # Launch without arguments to open the last book you were reading
 lue
 
+# Practice Lue default keys with the navigation guide
+lue --guide
+
+# View available command line options
+lue --help
+
 # Use specific TTS model (edge/kokoro/none) 
 lue --tts kokoro path/to/your/book.epub
 
@@ -163,11 +181,6 @@ lue --filter 0.12 0.20 path/to/your/book.pdf     # Header 12%, footnote 20%
 # Use the Vim keyboard layout
 lue --keys vim path/to/your/book.epub
 
-# Practice Lue default keys with the navigation guide
-lue --guide
-
-# View available options
-lue --help
 ```
 
 ### Keyboard Controls (Default)
@@ -238,12 +251,12 @@ Check out the [Developer Guide](DEVELOPER.md) for instructions on adding new TTS
 **Reading Progress:**
 - **macOS:** `~/Library/Application Support/lue/`
 - **Linux:** `~/.local/share/lue/`  
-- **Windows:** `C:\Users\<User>\AppData\Local\lue\`
+- **Windows (WSL):** `~/.local/share/lue/` (within WSL filesystem)
 
 **Error Logs:**
 - **macOS:** `~/Library/Logs/lue/error.log`
 - **Linux:** `~/.cache/lue/log/error.log`
-- **Windows:** `C:\Users\<User>\AppData\Local\lue\Logs\error.log`
+- **Windows (WSL):** `~/.cache/lue/log/error.log` (within WSL filesystem)
 
 ---
 
