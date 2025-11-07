@@ -542,13 +542,13 @@ class Lue:
 
     def _increase_speed(self):
         """Increase playback speed."""
-        speed_levels = [1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
+        speed_levels = [round(i * 0.1, 1) for i in range(10, 31)]  # 1.0 to 3.0 in 0.1 increments
         current_index = 0
         for i, speed in enumerate(speed_levels):
             if abs(speed - self.playback_speed) < 0.01:
                 current_index = i
                 break
-        
+
         if current_index < len(speed_levels) - 1:
             self.playback_speed = speed_levels[current_index + 1]
             self._save_extended_progress()
@@ -557,13 +557,13 @@ class Lue:
 
     def _decrease_speed(self):
         """Decrease playback speed (limited to not go below 1.0x)."""
-        speed_levels = [1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0]
+        speed_levels = [round(i * 0.1, 1) for i in range(10, 31)]  # 1.0 to 3.0 in 0.1 increments
         current_index = 0
         for i, speed in enumerate(speed_levels):
             if abs(speed - self.playback_speed) < 0.01:
                 current_index = i
                 break
-        
+
         # Only allow decreasing speed if we're above 1.0x
         if current_index > 0:
             self.playback_speed = speed_levels[current_index - 1]
