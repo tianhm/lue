@@ -6,6 +6,29 @@ import logging
 import re
 from typing import List, Tuple, Optional, Dict, Any
 
+def _sanitize_word(word: str) -> str:
+    """
+    Sanitize a word by stripping all non-alphanumeric characters and converting to lowercase.
+    
+    This function is used for case-insensitive word comparison by removing punctuation
+    and other special characters, leaving only letters and numbers.
+    
+    Args:
+        word: The word to sanitize
+        
+    Returns:
+        Sanitized word containing only lowercase alphanumeric characters
+    """
+    if not word:
+        return ""
+    
+    # Strip all non-alphanumeric characters
+    sanitized = re.sub(r'[^a-zA-Z0-9]', '', word)
+    
+    # Convert to lowercase for case-insensitive comparison
+    return sanitized.lower()
+
+
 def _get_highlightable_words(text: str) -> list[str]:
     """
     Get list of words that should be considered for timing.
@@ -65,86 +88,126 @@ def create_word_mapping(original_words: List[str], tts_word_timings: List[Tuple[
     Create a mapping from original word indices to TTS word timing indices.
     This handles cases where TTS combines words or processes punctuation differently.
     
+    Uses sanitized word comparison with fuzzy matching to handle:
+    - Punctuation differences between original and TTS text
+    - Case differences
+    - Word combining/splitting by TTS engines
+    - Punctuation-only tokens
+    
     Args:
         original_words: List of words from the original text
         tts_word_timings: List of (word, start_time, end_time) tuples from TTS
     
     Returns:
         List where index i contains the TTS timing index for original word i,
-        or None if the original word is part of a combined TTS word.
+        or None if no valid mapping can be created.
     """
+    # Handle edge cases: empty inputs
     if not original_words or not tts_word_timings:
+        logging.debug("create_word_mapping: Empty input - original_words or tts_word_timings is empty")
         return None
     
     # Extract just the text from TTS timings
     tts_words = [word for word, _, _ in tts_word_timings]
     
-    # If counts match, create simple 1:1 mapping
-    if len(original_words) == len(tts_words):
-        return list(range(len(original_words)))
+    # Sanitize both original and TTS words for comparison
+    orig_sanitized = [_sanitize_word(word) for word in original_words]
+    tts_sanitized = [_sanitize_word(word) for word in tts_words]
     
-    # Create a more robust mapping algorithm
+    # If counts match and sanitized words match, create simple 1:1 mapping
+    if len(original_words) == len(tts_words):
+        # Check if sanitized versions match
+        if orig_sanitized == tts_sanitized:
+            logging.debug(f"create_word_mapping: Perfect 1:1 match with {len(original_words)} words")
+            return list(range(len(original_words)))
+    
+    # Create enhanced mapping algorithm with fuzzy matching
     mapping = []
     tts_index = 0
     
-    # Extract core words for better matching
-    orig_core_words = [_extract_core_word(word) for word in original_words]
-    tts_core_words = [_extract_core_word(word) for word in tts_words]
+    logging.debug(f"create_word_mapping: Mapping {len(original_words)} original words to {len(tts_words)} TTS words")
     
     for orig_index, orig_word in enumerate(original_words):
+        # Handle edge case: exhausted TTS words
         if tts_index >= len(tts_words):
-            # No more TTS words, map to the last one
-            mapping.append(max(0, len(tts_words) - 1))
+            # Map remaining original words to the last TTS word
+            last_tts_index = max(0, len(tts_words) - 1)
+            mapping.append(last_tts_index)
+            logging.debug(f"create_word_mapping: Word {orig_index} '{orig_word}' -> TTS {last_tts_index} (exhausted TTS words)")
             continue
         
-        orig_core = orig_core_words[orig_index]
+        orig_sanitized_word = orig_sanitized[orig_index]
         
-        # Skip empty core words (pure punctuation)
-        if not orig_core:
-            # Map punctuation to the previous word's timing, or current if first
+        # Handle punctuation-only tokens by mapping to previous word
+        if not orig_sanitized_word:
+            # Map punctuation to the previous word's timing, or first TTS word if this is the first original word
             if mapping:
-                mapping.append(mapping[-1])
+                prev_mapping = mapping[-1]
+                mapping.append(prev_mapping)
+                logging.debug(f"create_word_mapping: Word {orig_index} '{orig_word}' (punctuation-only) -> TTS {prev_mapping} (previous)")
             else:
                 mapping.append(0)
+                logging.debug(f"create_word_mapping: Word {orig_index} '{orig_word}' (punctuation-only) -> TTS 0 (first)")
             continue
         
-        # Find the best matching TTS word
+        # Find the best matching TTS word using fuzzy matching with scoring
         best_match_index = None
         best_match_score = 0
         
-        # Look ahead in TTS words to find the best match
+        # Look ahead up to 5 positions to find best TTS word match
         search_range = min(len(tts_words), tts_index + 5)
+        
         for search_idx in range(tts_index, search_range):
-            tts_core = tts_core_words[search_idx]
+            tts_sanitized_word = tts_sanitized[search_idx]
             
-            if not tts_core:
+            # Skip empty TTS words (shouldn't happen but handle gracefully)
+            if not tts_sanitized_word:
                 continue
-                
-            # Calculate match score
-            score = 0
-            if orig_core.lower() == tts_core.lower():
-                score = 100  # Perfect match
-            elif orig_core.lower() in tts_core.lower():
-                score = 80   # Original word is contained in TTS word
-            elif tts_core.lower() in orig_core.lower():
-                score = 60   # TTS word is contained in original word
-            elif _words_similar(orig_core.lower(), tts_core.lower()):
-                score = 40   # Similar words (for handling slight differences)
             
+            # Calculate match score using fuzzy matching
+            score = 0
+            
+            # Perfect match: sanitized words are identical (score = 100)
+            if orig_sanitized_word == tts_sanitized_word:
+                score = 100
+            # Original word contained in TTS word (score = 80)
+            elif orig_sanitized_word in tts_sanitized_word:
+                score = 80
+            # TTS word contained in original word (score = 60)
+            elif tts_sanitized_word in orig_sanitized_word:
+                score = 60
+            # Similar words using heuristic matching (score = 40)
+            elif _words_similar(orig_sanitized_word, tts_sanitized_word):
+                score = 40
+            
+            # Update best match if this score is higher
             if score > best_match_score:
                 best_match_score = score
                 best_match_index = search_idx
+                
+                # If we found a perfect match, no need to search further
+                if score == 100:
+                    break
         
-        if best_match_index is not None:
+        # Handle edge case: no matches found
+        if best_match_index is None or best_match_score == 0:
+            # No good match found, use current TTS index as fallback
+            mapping.append(tts_index)
+            logging.debug(f"create_word_mapping: Word {orig_index} '{orig_word}' -> TTS {tts_index} (no match, fallback)")
+            tts_index += 1
+        else:
+            # Found a match, use it
             mapping.append(best_match_index)
+            logging.debug(f"create_word_mapping: Word {orig_index} '{orig_word}' -> TTS {best_match_index} '{tts_words[best_match_index]}' (score={best_match_score})")
             
-            # Only advance tts_index if we found a good match and it's not too far ahead
+            # Advance tts_index if we found a good match and it's not too far ahead
+            # This prevents skipping too many TTS words at once
             if best_match_index <= tts_index + 2:
                 tts_index = best_match_index + 1
-        else:
-            # No good match found, use current TTS index
-            mapping.append(tts_index)
-            tts_index += 1
+    
+    # Handle edge case: mismatched counts - log warning
+    if len(original_words) != len(tts_words):
+        logging.debug(f"create_word_mapping: Word count mismatch - {len(original_words)} original vs {len(tts_words)} TTS")
     
     return mapping
 

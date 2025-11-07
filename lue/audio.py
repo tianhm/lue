@@ -162,6 +162,9 @@ async def _producer_loop(reader):
                 merged = True
             # --- End of fragment merging logic ---
 
+            # Preserve original text for UI display and timing calculation
+            original_text = text
+            
             output_format = reader.tts_model.output_format
             output_filename = f"{config.AUDIO_BUFFERS[buffer_index]}.{output_format}"
             
@@ -175,20 +178,22 @@ async def _producer_loop(reader):
                     except OSError:
                         if attempt < 2: await asyncio.sleep(0.05)
                 
-                cleaned_text = clean_tts_text(text)
+                # Create sanitized version for TTS
+                sanitized_text = content_parser.sanitize_text_for_tts(original_text)
                 
                 timing_info = None
                 
                 # Use the timing-aware method if available
                 if hasattr(reader.tts_model, 'generate_audio_with_timing'):
                     try:
-                        timing_info = await reader.tts_model.generate_audio_with_timing(cleaned_text, output_filename)
-                    except Exception:
+                        timing_info = await reader.tts_model.generate_audio_with_timing(sanitized_text, output_filename)
+                    except Exception as e:
                         # If timing generation fails, fall back to generating without it
-                        await reader.tts_model.generate_audio(cleaned_text, output_filename)
+                        logging.error(f"TTS timing generation failed for text '{original_text[:50]}...' (sanitized: '{sanitized_text[:50]}...'): {e}")
+                        await reader.tts_model.generate_audio(sanitized_text, output_filename)
                 else:
                     # Fallback to regular method
-                    await reader.tts_model.generate_audio(cleaned_text, output_filename)
+                    await reader.tts_model.generate_audio(sanitized_text, output_filename)
 
                 # Always get the actual duration from the file
                 duration = await get_audio_duration(output_filename)
@@ -196,9 +201,10 @@ async def _producer_loop(reader):
                 if not reader.running: break
                 
                 # If no timing info was generated, create a fallback structure
+                # Pass original_text to timing calculator for proper word mapping
                 if timing_info is None:
                     from .timing_calculator import process_tts_timing_data
-                    timing_info = process_tts_timing_data(cleaned_text, [], duration)
+                    timing_info = process_tts_timing_data(original_text, [], duration)
                 
                 await asyncio.wait_for(reader.audio_queue.put((output_filename, *producer_pos, duration, timing_info)), timeout=1.0)
                 
@@ -214,7 +220,13 @@ async def _producer_loop(reader):
             except asyncio.CancelledError: break
             except Exception as e:
                 if reader.running:
-                    logging.error(f"TTS Error in producer: {e}", exc_info=True)
+                    # Include both original and sanitized text in error logging
+                    try:
+                        sanitized_for_log = content_parser.sanitize_text_for_tts(original_text) if 'original_text' in locals() else 'N/A'
+                        original_for_log = original_text if 'original_text' in locals() else 'N/A'
+                        logging.error(f"TTS Error in producer: {e}\nOriginal text: '{original_for_log[:100]}...'\nSanitized text: '{sanitized_for_log[:100]}...'", exc_info=True)
+                    except:
+                        logging.error(f"TTS Error in producer: {e}", exc_info=True)
                     await asyncio.sleep(2)
                 continue
     except asyncio.CancelledError: pass

@@ -59,10 +59,38 @@ def split_into_sentences(paragraph: str) -> list[str]:
     return restored_sentences if restored_sentences else [paragraph]
 
 
-def clean_text_for_tts(text):
+def sanitize_text_for_tts(text):
     """
-    Global text cleaning function to make content more TTS-friendly.
-    Applied to all parsers to handle common issues.
+    Sanitize text for TTS engines by stripping to only alphanumeric characters,
+    spaces, periods, commas, apostrophes, and colons. This ensures clean pronunciation without
+    special characters that might confuse TTS engines.
+
+    Args:
+        text: The text to sanitize
+
+    Returns:
+        Sanitized text containing only [a-zA-Z0-9.,:' ] characters
+    """
+    if not text or not isinstance(text, str):
+        return ""
+
+    # Remove all characters except alphanumeric, spaces, periods, commas, apostrophes, and colons
+    sanitized = re.sub(r"[^a-zA-Z0-9.,:'\s]", '', text)
+
+    # Collapse multiple spaces into single space
+    sanitized = re.sub(r'\s+', ' ', sanitized)
+
+    # Strip leading and trailing whitespace
+    sanitized = sanitized.strip()
+
+    return sanitized
+
+
+def clean_visual_text(text):
+    """
+    Clean text for visual display in the UI.
+    Focuses on markdown removal and whitespace normalization while preserving
+    punctuation and special characters for proper display.
     """
     if not text or not isinstance(text, str):
         return text
@@ -93,8 +121,7 @@ def clean_text_for_tts(text):
     text = re.sub(r'[\\]{3,}', '', text)               # Remove \
     text = re.sub(r'[/]{3,}', '', text)                # Remove ///
     
-    # 3. Clean up problematic Unicode characters that TTS struggles with
-    # Keep common ones like bullet points, quotes, dashes
+    # 3. Normalize Unicode characters for better display
     unicode_replacements = {
         # Various quote marks -> standard quotes
         '“': '"', '”': '"', '‘': "'", '’': "'",
@@ -124,22 +151,18 @@ def clean_text_for_tts(text):
     for old_char, new_char in unicode_replacements.items():
         text = text.replace(old_char, new_char)
     
-    # 4. Remove other problematic Unicode characters (keep basic Latin, common punctuation, and bullet)
-    # This regex keeps: letters, numbers, basic punctuation, spaces, and bullet points
-    text = re.sub(r'[^\w\s.,!?;:()[\]{}"\'-•…\n]', '', text)
-    
-    # 5. Handle ellipsis properly (before whitespace cleanup to avoid interference)
+    # 4. Handle ellipsis properly (before whitespace cleanup to avoid interference)
     text = re.sub(r'\.{4,}', '...', text)  # Multiple dots -> ellipsis
     text = re.sub(r'…+', '...', text)      # Unicode ellipsis -> ASCII ellipsis
     
-    # 6. Clean up excessive whitespace
+    # 5. Clean up excessive whitespace
     text = re.sub(r'\s+', ' ', text)  # Multiple spaces -> single space
     text = re.sub(r'\n\s*\n\s*\n+', '\n\n', text)  # Multiple newlines -> double newline max
     
-    # 7. Ensure proper spacing around ellipsis (after whitespace cleanup)
+    # 6. Ensure proper spacing around ellipsis (after whitespace cleanup)
     text = re.sub(r'\.\.\.(?=\S)', '... ', text)  # Add space after ellipsis if missing
     
-    # 8. Remove markdown formatting
+    # 7. Remove markdown formatting
     text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)  # **bold** -> bold
     text = re.sub(r'\*([^*]+)\*', r'\1', text)      # *italic* -> italic
     text = re.sub(r'__([^_]+)__', r'\1', text)      # __bold__ -> bold
@@ -157,7 +180,7 @@ def clean_text_for_tts(text):
     # Remove markdown headers (# symbols)
     text = re.sub(r'^#{1,6}\s+', '', text, flags=re.MULTILINE)  # # Header -> Header
     
-    # 9. Fix common formatting issues (but preserve ellipsis)
+    # 8. Fix common formatting issues (but preserve ellipsis)
     text = re.sub(r'\s+([,!?;:])', r'\1', text)  # Remove space before punctuation (except dots)
     text = re.sub(r'([,!?;:])\s*([,!?;:])', r'\1 \2', text)  # Ensure space between punctuation
     
@@ -302,8 +325,8 @@ class HTMLtoLines(HTMLParser):
             if line and len(line) > 3:  # Skip very short lines
                 # Clean up footnote markers and image references
                 line = self._clean_line(line)
-                # Apply global TTS-friendly cleaning
-                line = clean_text_for_tts(line)
+                # Apply global visual text cleaning
+                line = clean_visual_text(line)
                 if line and len(line) > 3:  # Check again after cleaning
                     # Apply formatting based on content type
                     if i in self.idhead:
@@ -647,7 +670,7 @@ def _extract_content_pdf(file_path, console):
         
         for para in paragraphs:
             if len(para.strip()) > 25:
-                cleaned_para = clean_text_for_tts(para.strip())
+                cleaned_para = clean_visual_text(para.strip())
                 if cleaned_para and len(cleaned_para) > 10:
                     all_paragraphs.append(cleaned_para)
 
@@ -691,13 +714,13 @@ def _extract_content_txt(file_path, console):
     content = content.replace('\r\n', '\n')
     
     # Attempt to split by double newline first
-    paragraphs = [clean_text_for_tts(p.strip()) for p in content.split('\n\n') if p.strip()]
+    paragraphs = [clean_visual_text(p.strip()) for p in content.split('\n\n') if p.strip()]
     paragraphs = [p for p in paragraphs if p and len(p) > 3]
     
     # If that results in very few paragraphs (i.e., the whole file is one paragraph),
     # and there are single newlines, then split by single newlines.
     if len(paragraphs) <= 1 and '\n' in content:
-        paragraphs = [clean_text_for_tts(p.strip()) for p in content.split('\n') if p.strip()]
+        paragraphs = [clean_visual_text(p.strip()) for p in content.split('\n') if p.strip()]
         paragraphs = [p for p in paragraphs if p and len(p) > 3]
 
     if not paragraphs:
@@ -715,7 +738,7 @@ def _extract_content_docx(file_path, console):
     try:
         doc = Document(file_path)
         full_text = "\n".join([para.text for para in doc.paragraphs if para.text and not para.text.isspace()])
-        paragraphs = [clean_text_for_tts(p.strip()) for p in full_text.split('\n') if p.strip()]
+        paragraphs = [clean_visual_text(p.strip()) for p in full_text.split('\n') if p.strip()]
         paragraphs = [p for p in paragraphs if p and len(p) > 3]
         
         return [paragraphs]
@@ -740,7 +763,7 @@ def _extract_content_doc(file_path, console):
         content = re.sub(r'(?<!\n)\n(?!\n)', ' ', content)
         content = re.sub(r' +', ' ', content)  # collapse multiple spaces
         
-        lines = [clean_text_for_tts(line.strip()) for line in content.split('\n') if line.strip()]
+        lines = [clean_visual_text(line.strip()) for line in content.split('\n') if line.strip()]
         lines = [line for line in lines if line and len(line) > 3]
         return [lines]
 
@@ -760,7 +783,7 @@ def _extract_content_doc(file_path, console):
             text = re.sub(r'(?<!\n)\n(?!\n)', ' ', text)
             text = re.sub(r' +', ' ', text)  # collapse multiple spaces
             
-            lines = [clean_text_for_tts(line.strip()) for line in text.split('\n') if line.strip()]
+            lines = [clean_visual_text(line.strip()) for line in text.split('\n') if line.strip()]
             lines = [line for line in lines if line and len(line) > 3]
             return [lines]
 
@@ -780,7 +803,7 @@ def _extract_content_rtf(file_path, console):
         
         text_content = text_content.replace('\r\n', '\n').replace('\r', '\n')
         
-        lines = [clean_text_for_tts(line.strip()) for line in text_content.split('\n') if line.strip()]
+        lines = [clean_visual_text(line.strip()) for line in text_content.split('\n') if line.strip()]
         lines = [line for line in lines if line and len(line) > 3]
 
         return [lines]
@@ -907,8 +930,8 @@ def _parse_raw_markdown(md_content):
         
         i += 1
     
-    # Apply global TTS-friendly cleaning to all lines
-    result = [clean_text_for_tts(line) if line.strip() else line for line in result]
+    # Apply global visual text cleaning to all lines
+    result = [clean_visual_text(line) if line.strip() else line for line in result]
     
     # Clean up excessive empty lines
     clean_result = []
