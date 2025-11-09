@@ -61,22 +61,22 @@ def split_into_sentences(paragraph: str) -> list[str]:
 
 def sanitize_text_for_tts(text):
     """
-    Sanitize text for TTS engines by stripping to only alphanumeric characters,
-    spaces, periods, commas, apostrophes, and colons. This ensures clean pronunciation without
-    special characters that might confuse TTS engines.
+    Sanitize text for TTS engines by removing special characters while preserving
+    letters (including accented characters), numbers, and basic punctuation.
 
     Args:
         text: The text to sanitize
 
     Returns:
-        Sanitized text containing only [a-zA-Z0-9.,:' ] characters
+        Sanitized text with special characters removed but Unicode letters preserved
     """
     if not text or not isinstance(text, str):
         return ""
 
-    # Remove all characters except alphanumeric, spaces, periods, commas, apostrophes, and colons
-    sanitized = re.sub(r"[^a-zA-Z0-9.,:'\s]", '', text)
-
+    # Remove special characters but keep Unicode letters, numbers, and basic punctuation
+    # \w includes Unicode letters and digits, so we use a more targeted approach
+    sanitized = re.sub(r"[^\w\s.,:'-]", '', text, flags=re.UNICODE)
+    
     # Collapse multiple spaces into single space
     sanitized = re.sub(r'\s+', ' ', sanitized)
 
