@@ -75,7 +75,7 @@ def sanitize_text_for_tts(text):
 
     # Remove special characters but keep Unicode letters, numbers, and basic punctuation
     # \w includes Unicode letters and digits, so we use a more targeted approach
-    sanitized = re.sub(r"[^\w\s.,:'-()]", '', text, flags=re.UNICODE)
+    sanitized = re.sub(r"[^\w\s.,:'-();]", '', text, flags=re.UNICODE)
     
     # Collapse multiple spaces into single space
     sanitized = re.sub(r'\s+', ' ', sanitized)
