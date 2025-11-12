@@ -136,12 +136,15 @@ def clean_visual_text(text):
         # Mathematical symbols -> text
         '×': ' multiplied by ', '÷': ' divided by ', '±': ' plus or minus ',
         '≤': ' less than or equal to ', '≥': ' greater than or equal to ', '≠': ' not equal to ',
-        '≈': ' approximately' , '∞': 'infinity ', '%': ' percent ', '+': ' plus ', '=': ' equals ', 
-        
+        '≈': ' approximately' , '∞': 'infinity ', '%': ' percent ', '+': ' plus ', '=': ' equals ',
+
         # Other symbols -> text
-        '°': ' degrees ', '™': ' trademark ', '®': ' registered ', 
+        '°': ' degrees ', '™': ' trademark ', '®': ' registered ',
         '©': ' copyright ', '§': ' section ',
-        
+
+        # Replace curly apostrophe with basic apostrophe
+        "’": "'",
+
         # Remove zero-width and invisible characters
         '\u200b': '', '\u200c': '', '\u200d': '',  # Zero-width spaces
         '\ufeff': '',  # Byte order mark
