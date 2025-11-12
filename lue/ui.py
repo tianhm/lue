@@ -292,22 +292,23 @@ def get_visible_content(reader):
                 highlightable_word_count = 0
                 
                 for token_idx, token in enumerate(tokens):
-                    if _should_token_be_highlighted(token):
-                        # This token is a word that can be highlighted
-                        if highlightable_word_count == reader.ui_word_idx:
-                            # This is the currently highlighted word
-                            word_style = (COLORS.WORD_HIGHLIGHT_STANDOUT if config.WORD_HIGHLIGHT_MODE == 2 
-                                        else COLORS.WORD_HIGHLIGHT)
-                            highlighted_text.append(token, style=word_style)
-                        else:
-                            # This is a word but not the currently highlighted one
-                            highlighted_text.append(token, style=base_style)
-                        highlightable_word_count += 1
-                    else:
-                        # This token should be displayed but not highlighted (punctuation only)
-                        highlighted_text.append(token, style=base_style)
+                    # Split token on em dash, keeping the dash as a separate part
+                    sub_parts = re.split(r'(—)', token)
                     
-                    # Add space after token (except for the last one)
+                    for part_idx, part in enumerate(sub_parts):
+                        # If part is em dash or non-highlightable (no alnum), append without counting
+                        if part == '—' or not re.search(r'[a-zA-Z0-9]', part):
+                            highlighted_text.append(part, style=base_style)
+                        else:
+                            # Highlightable word part
+                            if highlightable_word_count == reader.ui_word_idx:
+                                word_style = COLORS.WORD_HIGHLIGHT_STANDOUT if config.WORD_HIGHLIGHT_MODE == 2 else COLORS.WORD_HIGHLIGHT
+                                highlighted_text.append(part, style=word_style)
+                            else:
+                                highlighted_text.append(part, style=base_style)
+                            highlightable_word_count += 1
+                    
+                    # Add space after the full token (not between sub-parts)
                     if token_idx < len(tokens) - 1:
                         highlighted_text.append(" ", style=base_style)
             else:

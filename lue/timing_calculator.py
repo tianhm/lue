@@ -4,6 +4,7 @@ Word-level timing calculation module for the Lue eBook reader.
 
 import logging
 import re
+import string
 from typing import List, Tuple, Optional, Dict, Any
 
 def _sanitize_word(word: str) -> str:
@@ -35,18 +36,23 @@ def _get_highlightable_words(text: str) -> list[str]:
     
     This function filters out tokens that contain only punctuation/non-alphanumeric
     characters, which should not be counted as words for timing purposes.
+    Strips punctuation (including commas from em dash replacement) for counting.
     
     Args:
         text: The text to process
         
     Returns:
-        List of words that should be timed
+        List of cleaned words that should be timed
     """
     # Split on whitespace to get tokens
     tokens = text.split()
     
-    # Filter out tokens that contain only punctuation/non-alphanumeric characters
-    words = [token for token in tokens if re.search(r'[a-zA-Z0-9]', token)]
+    # Strip punctuation from tokens and filter out pure punctuation
+    words = []
+    for token in tokens:
+        cleaned = token.strip(string.punctuation)
+        if cleaned:  # Only include non-empty cleaned tokens
+            words.append(cleaned)
     
     return words
 

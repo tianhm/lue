@@ -63,6 +63,8 @@ def sanitize_text_for_tts(text):
     """
     Sanitize text for TTS engines by removing special characters while preserving
     letters (including accented characters), numbers, and basic punctuation.
+    
+    Replaces em dashes (—) with comma-space for natural TTS pause.
 
     Args:
         text: The text to sanitize
@@ -73,6 +75,9 @@ def sanitize_text_for_tts(text):
     if not text or not isinstance(text, str):
         return ""
 
+    # Replace em dash with comma-space for natural pause in TTS
+    text = re.sub(r'—', ', ', text)
+    
     # Remove special characters but keep Unicode letters, numbers, and basic punctuation
     # \w includes Unicode letters and digits, so we use a more targeted approach
     sanitized = re.sub(r"[^\w\s.,:'-();]", '', text, flags=re.UNICODE)
@@ -127,8 +132,8 @@ def clean_visual_text(text):
         '“': '"', '”': '"', '‘': "'", '’': "'",
         '„': '"', '‚': "'", '‹': "'", '›': "'",
         
-        # Various dashes -> standard dash
-        '–': '-', '—': '-', '―': '-',
+        # Various dashes -> standard dash (but preserve em dash for TTS pause)
+        '–': '-', '―': '-',  # Convert en dash and horizontal bar, but NOT em dash
         
         # Mathematical and special symbols -> text equivalents
         '×': 'x', '÷': '/', '±': '+/-',
