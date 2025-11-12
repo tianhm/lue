@@ -292,12 +292,12 @@ def get_visible_content(reader):
                 highlightable_word_count = 0
                 
                 for token_idx, token in enumerate(tokens):
-                    # Split token on em dash, keeping the dash as a separate part
-                    sub_parts = re.split(r'(—)', token)
+                    # Split token on em dash or hyphen, keeping the separator as a separate part
+                    sub_parts = re.split(r'([—-])', token)
                     
                     for part_idx, part in enumerate(sub_parts):
-                        # If part is em dash or non-highlightable (no alnum), append without counting
-                        if part == '—' or not re.search(r'[a-zA-Z0-9]', part):
+                        # If part is em dash, hyphen, or non-highlightable (no alnum), append without counting
+                        if part in ['—', '-'] or not re.search(r'[a-zA-Z0-9]', part):
                             highlighted_text.append(part, style=base_style)
                         else:
                             # Highlightable word part

@@ -65,6 +65,7 @@ def sanitize_text_for_tts(text):
     letters (including accented characters), numbers, and basic punctuation.
     
     Replaces em dashes (—) with comma-space for natural TTS pause.
+    Replaces hyphens between alphanumeric characters with spaces for compound words.
 
     Args:
         text: The text to sanitize
@@ -77,6 +78,9 @@ def sanitize_text_for_tts(text):
 
     # Replace em dash with comma-space for natural pause in TTS
     text = re.sub(r'—', ', ', text)
+    
+    # Replace hyphens between alphanumeric characters with spaces
+    text = re.sub(r'(?<=\w)-(?=\w)', ' ', text)
     
     # Remove special characters but keep Unicode letters, numbers, and basic punctuation
     # \w includes Unicode letters and digits, so we use a more targeted approach
