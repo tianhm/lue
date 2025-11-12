@@ -126,26 +126,20 @@ def clean_visual_text(text):
     text = re.sub(r'[\\]{3,}', '', text)               # Remove \
     text = re.sub(r'[/]{3,}', '', text)                # Remove ///
     
-    # 3. Normalize Unicode characters for better display
+    # 3. Replace Unicode characters for better TTS
     unicode_replacements = {
-        # Various quote marks -> standard quotes
-        '“': '"', '”': '"', '‘': "'", '’': "'",
-        '„': '"', '‚': "'", '‹': "'", '›': "'",
-        
-        # Various dashes -> standard dash (but preserve em dash for TTS pause)
-        '–': '-', '―': '-',  # Convert en dash and horizontal bar, but NOT em dash
-        
-        # Mathematical and special symbols -> text equivalents
-        '×': 'x', '÷': '/', '±': '+/-',
-        '≤': '<=', '≥': '>=', '≠': '!=',
-        '≈': '~', '∞': 'infinity',
+
+        # Mathematical symbols -> text
+        '×': ' multiplied by ', '÷': ' divided by ', '±': ' plus or minus ',
+        '≤': ' less than or equal to ', '≥': ' greater than or equal to ', '≠': ' not equal to ',
+        '≈': ' approximately' , '∞': 'infinity ', '%': ' percent ', '+': ' plus ', '=': ' equals ', 
         
         # Currency symbols -> text
-        '€': ' euros', '£': ' pounds', '$': ' dollars',
+        '€': ' euros ', '£': ' pounds ', '$': ' dollars ',
         
-        # Degree and other symbols
-        '°': ' degrees', '™': 'TM', '®': 'R',
-        '©': 'Copyright', '§': 'Section',
+        # Other symbols -> text
+        '°': ' degrees ', '™': ' trademark ', '®': ' registered ', 
+        '©': ' copyright ', '§': ' section ',
         
         # Remove zero-width and invisible characters
         '\u200b': '', '\u200c': '', '\u200d': '',  # Zero-width spaces
