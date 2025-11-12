@@ -138,9 +138,6 @@ def clean_visual_text(text):
         '≤': ' less than or equal to ', '≥': ' greater than or equal to ', '≠': ' not equal to ',
         '≈': ' approximately' , '∞': 'infinity ', '%': ' percent ', '+': ' plus ', '=': ' equals ', 
         
-        # Currency symbols -> text
-        '€': ' euros ', '£': ' pounds ', '$': ' dollars ',
-        
         # Other symbols -> text
         '°': ' degrees ', '™': ' trademark ', '®': ' registered ', 
         '©': ' copyright ', '§': ' section ',
