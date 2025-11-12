@@ -3,7 +3,7 @@
 <img src="https://github.com/superstarryeyes/lue/blob/main/images/lue-icon.png?raw=true" alt="Lue Icon" width="35%" />
 
 ### Lue - Terminal eBook Reader with Text-to-Speech
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-86c9fa.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![License: GPL v3+](https://img.shields.io/badge/License-GPLv3+-86c9fa.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Python](https://img.shields.io/badge/python-3.10+-86c9fa.svg)](https://www.python.org/downloads/)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows%20(WSL)-86c9fa)](https://github.com/superstarryeyes/lue)
 [![Terminal](https://img.shields.io/badge/interface-terminal-86c9fa.svg)](https://github.com/superstarryeyes/lue)
@@ -272,7 +272,7 @@ Join our Discord community for discussions, support and collaboration for creati
 
 ## 📄 License
 
-This project is licensed under the **GPL-3.0 License** - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **GPL-3.0-or-later License** - see the [LICENSE](LICENSE) file for details.
 
 ---
 

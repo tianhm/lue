@@ -7,14 +7,14 @@ name = "lue-reader"
 version = "0.3.1"
 description = "A terminal-based eBook reader with modular text-to-speech capabilities and multi-format support"
 readme = "README.md"
-license = {text = "GPL-3.0"}
+license = {text = "GPL-3.0-or-later"}
 authors = [
     {name = "Starry Eyes"}
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: End Users/Desktop",
-    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
