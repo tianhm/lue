@@ -121,6 +121,9 @@ def process_input(reader):
                     reader.mouse_sequence_buffer = ''
                     reader.mouse_sequence_active = False
                     
+                    if reader.show_recent_menu:
+                        return
+                    
                     _kill_audio_immediately(reader)
                     cmd = None
                     if data == 'C':
@@ -154,7 +157,11 @@ def process_input(reader):
                 return
             
             cmd = None
-            if data == tts_shortcuts.get("play_pause", "p"):
+            if data == app_shortcuts.get("toggle_recent_menu", "r"):
+                cmd = 'toggle_recent_menu'
+            elif data == app_shortcuts.get("select_menu_item", "\n") or data == '\r':
+                cmd = 'select_menu_item'
+            elif data == tts_shortcuts.get("play_pause", "p"):
                 cmd = 'pause'
             elif data == nav_shortcuts.get("prev_paragraph", "h"):
                 cmd = 'prev_paragraph'

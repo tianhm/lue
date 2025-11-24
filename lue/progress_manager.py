@@ -92,7 +92,7 @@ def save_progress(progress_file, chapter_idx, paragraph_idx, sentence_idx):
         json.dump(progress, f, indent=2)
 
 def save_extended_progress(progress_file, chapter_idx, paragraph_idx, sentence_idx, 
-                          scroll_offset, tts_enabled, auto_scroll_enabled, manual_scroll_anchor=None, original_file_path=None, playback_speed=1.0):
+                          scroll_offset, tts_enabled, auto_scroll_enabled, manual_scroll_anchor=None, original_file_path=None, playback_speed=1.0, percentage=0.0):
     """
     Save extended reading progress including UI state.
     
@@ -106,6 +106,8 @@ def save_extended_progress(progress_file, chapter_idx, paragraph_idx, sentence_i
         auto_scroll_enabled: Whether auto-scroll is enabled
         manual_scroll_anchor: Manual scroll anchor position (optional)
         original_file_path: Original path to the eBook file (optional)
+        playback_speed: Audio playback speed
+        percentage: Completion percentage (0.0 to 100.0)
     """
     progress = {
         "c": chapter_idx,
@@ -114,15 +116,67 @@ def save_extended_progress(progress_file, chapter_idx, paragraph_idx, sentence_i
         "scroll_offset": float(scroll_offset),
         "tts_enabled": bool(tts_enabled),
         "auto_scroll_enabled": bool(auto_scroll_enabled),
-        "playback_speed": float(playback_speed)
+        "playback_speed": float(playback_speed),
+        "completion_percentage": float(percentage)
     }
     if manual_scroll_anchor:
         progress["manual_scroll_anchor"] = manual_scroll_anchor
     if original_file_path:
         progress["original_file_path"] = original_file_path
+    
+    # Save percentage if provided (default to 0.0 if not in args, but we will add it to args)
+    # Note: The function signature will be updated in the next step to include percentage.
+    # For now, we'll just add it if passed in kwargs or update the signature.
+    # Actually, I should update the signature in the same edit.
         
     with open(progress_file, 'w', encoding='utf-8') as f:
         json.dump(progress, f, indent=2)
+
+def get_recent_books(limit=5):
+    """
+    Get a list of recently read books.
+    
+    Args:
+        limit: Maximum number of books to return
+        
+    Returns:
+        list: List of dicts containing title, path, and percentage
+    """
+    progress_files = glob.glob(os.path.join(config.PROGRESS_FILE_DIR, "*.progress.json"))
+    
+    # Sort by modification time (newest first)
+    progress_files.sort(key=os.path.getmtime, reverse=True)
+    
+    recent_books = []
+    for pf in progress_files:
+        if len(recent_books) >= limit:
+            break
+            
+        try:
+            with open(pf, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                
+            original_path = data.get("original_file_path")
+            if not original_path or not os.path.exists(original_path):
+                continue
+                
+            # Derive title from filename if not stored (we don't store title currently, so use filename)
+            title = os.path.basename(original_path)
+            # Remove extension
+            title = os.path.splitext(title)[0]
+            
+            percentage = data.get("completion_percentage", 0.0)
+            
+            recent_books.append({
+                "title": title,
+                "path": original_path,
+                "percentage": percentage
+            })
+            
+        except (json.JSONDecodeError, IOError):
+            continue
+            
+    return recent_books
 
 def validate_and_set_progress(chapters, progress_file, c, p, s):
     """

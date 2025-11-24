@@ -47,14 +47,20 @@ class Lue:
         self.pause_toggle_lock = asyncio.Lock()
         self.current_pause_toggle_task = None
 
+        # Recent books menu state
+        self.show_recent_menu = False
+        self.recent_books_list = []
+        self.recent_menu_selection_idx = 0
+
     def _initialize_tts(self, tts_model):
         """Initialize TTS-related state."""
         self.tts_model = tts_model
         self.tts_voice = tts_model.voice if tts_model and tts_model.voice else config.TTS_VOICES.get(tts_model.name) if tts_model else None
         
-    def _load_content(self):
+    def _load_content(self, quiet=False):
         """Load and process the document content."""
-        self.console.print(f"[bold cyan]Loading document: {self.book_title}...[/bold cyan]")
+        if not quiet:
+            self.console.print(f"[bold cyan]Loading document: {self.book_title}...[/bold cyan]")
         self.chapters = content_parser.extract_content(self.file_path, self.console)
         
         # Check if any content was extracted
@@ -63,8 +69,9 @@ class Lue:
             self.console.print("This might happen with image-based PDFs or unsupported formats.")
             sys.exit(1)
             
-        self.console.print(f"[green]Document loaded successfully![/green]")
-        self.console.print(f"[bold cyan]Loading TTS model...[/bold cyan]")
+        if not quiet:
+            self.console.print(f"[green]Document loaded successfully![/green]")
+            self.console.print(f"[bold cyan]Loading TTS model...[/bold cyan]")
         
         self.document_lines = []
         self.line_to_position = {}
@@ -79,6 +86,33 @@ class Lue:
         
         # Update document layout immediately after loading content
         ui.update_document_layout(self)
+
+    async def _switch_book(self, new_path):
+        """Switch to a different book."""
+        # Save current progress
+        self._save_extended_progress()
+        
+        # Stop audio
+        await audio.stop_and_clear_audio(self)
+        
+        # Update file path and title
+        self.file_path = new_path
+        self.book_title = os.path.splitext(os.path.basename(new_path))[0]
+        self.progress_file = progress_manager.get_progress_file_path(self.book_title)
+        
+        # Load new content quietly
+        self._load_content(quiet=True)
+        
+        # Initialize progress for new book
+        self._initialize_progress()
+        
+        # Reset some state
+        self.first_sentence_jump = False
+        self.recent_books_list = []
+        self.show_recent_menu = False
+        
+        # Force UI update
+        asyncio.create_task(ui.display_ui(self))
         
     def _initialize_progress(self):
         """Initialize reading progress from saved state."""
@@ -710,7 +744,8 @@ class Lue:
             self.auto_scroll_enabled,
             manual_scroll_anchor=manual_scroll_anchor,
             original_file_path=self.file_path,
-            playback_speed=self.playback_speed
+            playback_speed=self.playback_speed,
+            percentage=self._calculate_ui_progress_percentage()
         )
 
     def _scroll_to_position_immediate(self, chapter_idx, paragraph_idx, sentence_idx):
@@ -726,7 +761,7 @@ class Lue:
         self.scroll_offset = self.target_scroll_offset = max(0, self.scroll_offset - 1)
         if self.smooth_scroll_task and not self.smooth_scroll_task.done(): self.smooth_scroll_task.cancel()
         self.chapter_idx, self.paragraph_idx, self.sentence_idx = self.ui_chapter_idx, self.ui_paragraph_idx, self.ui_sentence_idx
-        progress_manager.save_extended_progress(self.progress_file, self.chapter_idx, self.paragraph_idx, self.sentence_idx, self.scroll_offset, not self.is_paused, self.auto_scroll_enabled, original_file_path=self.file_path, playback_speed=self.playback_speed)
+        progress_manager.save_extended_progress(self.progress_file, self.chapter_idx, self.paragraph_idx, self.sentence_idx, self.scroll_offset, not self.is_paused, self.auto_scroll_enabled, original_file_path=self.file_path, playback_speed=self.playback_speed, percentage=self._calculate_ui_progress_percentage())
 
     def _handle_scroll_up_smooth(self):
         self.auto_scroll_enabled = False
@@ -737,7 +772,7 @@ class Lue:
             self.scroll_offset = self.target_scroll_offset = target_offset
             if self.smooth_scroll_task and not self.smooth_scroll_task.done(): self.smooth_scroll_task.cancel()
         self.chapter_idx, self.paragraph_idx, self.sentence_idx = self.ui_chapter_idx, self.ui_paragraph_idx, self.ui_sentence_idx
-        progress_manager.save_extended_progress(self.progress_file, self.chapter_idx, self.paragraph_idx, self.sentence_idx, self.scroll_offset, not self.is_paused, self.auto_scroll_enabled, original_file_path=self.file_path, playback_speed=self.playback_speed)
+        progress_manager.save_extended_progress(self.progress_file, self.chapter_idx, self.paragraph_idx, self.sentence_idx, self.scroll_offset, not self.is_paused, self.auto_scroll_enabled, original_file_path=self.file_path, playback_speed=self.playback_speed, percentage=self._calculate_ui_progress_percentage())
 
     def _handle_scroll_down_immediate(self):
         self.auto_scroll_enabled = False
@@ -745,7 +780,7 @@ class Lue:
         self.scroll_offset = self.target_scroll_offset = min(max_scroll, self.scroll_offset + 1)
         if self.smooth_scroll_task and not self.smooth_scroll_task.done(): self.smooth_scroll_task.cancel()
         self.chapter_idx, self.paragraph_idx, self.sentence_idx = self.ui_chapter_idx, self.ui_paragraph_idx, self.ui_sentence_idx
-        progress_manager.save_extended_progress(self.progress_file, self.chapter_idx, self.paragraph_idx, self.sentence_idx, self.scroll_offset, not self.is_paused, self.auto_scroll_enabled, original_file_path=self.file_path, playback_speed=self.playback_speed)
+        progress_manager.save_extended_progress(self.progress_file, self.chapter_idx, self.paragraph_idx, self.sentence_idx, self.scroll_offset, not self.is_paused, self.auto_scroll_enabled, original_file_path=self.file_path, playback_speed=self.playback_speed, percentage=self._calculate_ui_progress_percentage())
 
     def _handle_scroll_down_smooth(self):
         self.auto_scroll_enabled = False
@@ -757,7 +792,7 @@ class Lue:
             self.scroll_offset = self.target_scroll_offset = target_offset
             if self.smooth_scroll_task and not self.smooth_scroll_task.done(): self.smooth_scroll_task.cancel()
         self.chapter_idx, self.paragraph_idx, self.sentence_idx = self.ui_chapter_idx, self.ui_paragraph_idx, self.ui_sentence_idx
-        progress_manager.save_extended_progress(self.progress_file, self.chapter_idx, self.paragraph_idx, self.sentence_idx, self.scroll_offset, not self.is_paused, self.auto_scroll_enabled, original_file_path=self.file_path, playback_speed=self.playback_speed)
+        progress_manager.save_extended_progress(self.progress_file, self.chapter_idx, self.paragraph_idx, self.sentence_idx, self.scroll_offset, not self.is_paused, self.auto_scroll_enabled, original_file_path=self.file_path, playback_speed=self.playback_speed, percentage=self._calculate_ui_progress_percentage())
 
     def _handle_navigation_immediate(self, cmd):
         current_pos = (self.chapter_idx, self.paragraph_idx, self.sentence_idx)
@@ -1126,6 +1161,8 @@ class Lue:
         self.running = False
         if self.loop and self.loop.is_running(): self.loop.call_soon_threadsafe(self._post_command_sync, 'quit')
 
+
+
     async def run(self):
         self.loop = asyncio.get_running_loop()
         self.loop.add_reader(sys.stdin.fileno(), input_handler.process_input, self)
@@ -1151,6 +1188,53 @@ class Lue:
             cmd = self.command
             self.command = None
             if not cmd: continue
+            
+            if cmd == 'toggle_recent_menu':
+                self.show_recent_menu = not self.show_recent_menu
+                if self.show_recent_menu:
+                    self.recent_books_list = progress_manager.get_recent_books()
+                    self.recent_menu_selection_idx = 0
+                    # Pause TTS when menu opens
+                    if not self.is_paused:
+                        self.is_paused = True
+                        self._save_extended_progress()
+                        await audio.stop_and_clear_audio(self)
+                # Force UI update
+                asyncio.create_task(ui.display_ui(self))
+                continue
+
+            if self.show_recent_menu:
+                if cmd in ['prev_sentence', 'prev_paragraph', 'scroll_up', 'scroll_page_up', 'wheel_scroll_up', 'move_to_beginning']:
+                    if self.recent_books_list:
+                        if self.recent_menu_selection_idx == 0:
+                            self.recent_menu_selection_idx = len(self.recent_books_list) - 1
+                        else:
+                            self.recent_menu_selection_idx -= 1
+                    asyncio.create_task(ui.display_ui(self))
+                    continue
+                elif cmd in ['next_sentence', 'next_paragraph', 'scroll_down', 'scroll_page_down', 'wheel_scroll_down', 'move_to_end']:
+                    if self.recent_books_list:
+                        if self.recent_menu_selection_idx == len(self.recent_books_list) - 1:
+                            self.recent_menu_selection_idx = 0
+                        else:
+                            self.recent_menu_selection_idx += 1
+                    asyncio.create_task(ui.display_ui(self))
+                    continue
+                elif cmd == 'select_menu_item':
+                    if self.recent_books_list and 0 <= self.recent_menu_selection_idx < len(self.recent_books_list):
+                        book_data = self.recent_books_list[self.recent_menu_selection_idx]
+                        path = book_data['path']
+                        await self._switch_book(path)
+                    continue
+                elif cmd == 'quit':
+                     # Allow quit even if menu is open
+                     pass
+                elif cmd == '_resize':
+                     # Allow resize to fall through to the main resize handler
+                     pass
+                else:
+                    # Ignore other commands while menu is open
+                    continue
             
             if isinstance(cmd, tuple):
                 command_name, data = cmd

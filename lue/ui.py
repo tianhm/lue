@@ -6,6 +6,9 @@ import re
 from rich.console import Console
 from rich.text import Text
 from rich.panel import Panel
+from rich.table import Table
+from rich.align import Align
+from rich import box
 from . import input_handler, config
 from . import content_parser
 
@@ -567,7 +570,55 @@ def get_compact_subtitle(reader, width):
         auto_color = COLORS.AUTO_SCROLL_ENABLED if reader.auto_scroll_enabled else COLORS.AUTO_SCROLL_DISABLED
         
         return f"[{playing_color}]{icon_status}[/{playing_color}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {auto_text} [{auto_color}]{icon_auto}[/{auto_color}] {controls_text}"
+
+def render_recent_books_overlay(reader, width, height):
+    """Render the recent books overlay."""
+    if not reader.recent_books_list:
+        content = Text("No recent books found.", justify="center", style=COLORS.TEXT_NORMAL)
+    else:
+        table = Table(box=None, show_header=False, padding=0, expand=True)
+        table.add_column("Selection", width=3)
+        table.add_column("Title", ratio=1, no_wrap=True, overflow="ellipsis")
+        table.add_column("Spacer", width=1)
+        table.add_column("Progress", justify="right")
         
+        for i, book in enumerate(reader.recent_books_list):
+            is_selected = i == reader.recent_menu_selection_idx
+            
+            if is_selected:
+                style = "reverse bold cyan"
+                prefix = ">"
+            else:
+                style = COLORS.TEXT_NORMAL
+                prefix = " "
+                
+            title = book['title']
+            percentage = f"{int(book['percentage'])}%"
+            
+            table.add_row(
+                prefix,
+                Text(title, overflow="ellipsis", no_wrap=True),
+                " ",
+                percentage,
+                style=style
+            )
+        content = table
+
+    panel_width = min(60, width - 4)
+    panel_height = min(len(reader.recent_books_list) + 4, height - 4)
+    
+    panel = Panel(
+        content,
+        title="[bold blue]Recently Read[/bold blue]",
+        border_style="blue",
+        box=box.ROUNDED,
+        width=panel_width,
+        height=panel_height,
+        padding=(1, 1)
+    )
+    
+    return panel, panel_width, panel_height
+
 async def display_ui(reader):
     """Display the UI."""
     if reader.render_lock.locked():
@@ -586,7 +637,9 @@ async def display_ui(reader):
                 width, height, reader.auto_scroll_enabled, reader.selection_active,
                 reader.selection_start, reader.selection_end,
                 # Add playback speed to trigger UI updates when speed changes
-                reader.playback_speed, config.UI_COMPLEXITY_MODE
+                reader.playback_speed, config.UI_COMPLEXITY_MODE,
+                # Add recent menu state to trigger updates
+                reader.show_recent_menu, reader.recent_menu_selection_idx
             )
             
             if reader.last_rendered_state == current_state and reader.last_terminal_size == (width, height):
@@ -602,23 +655,24 @@ async def display_ui(reader):
                 if i < len(visible_lines) - 1:
                     book_content.append("\n")
             
-            sys.stdout.write('\033[?25l\033[2J\033[H')
+            # Start building the full output buffer
+            # Clear screen and hide cursor
+            full_output = '\033[?25l\033[2J\033[H'
             
             temp_console = Console(width=width, height=height, force_terminal=True)
             
             # Handle different UI complexity modes
+            book_output = ""
             if config.UI_COMPLEXITY_MODE == 0:
                 # Mode 0: Minimal - text only, no borders, no UI elements
                 with temp_console.capture() as capture:
                     temp_console.print(book_content, end='', overflow='crop')
                 
-                output = capture.get()
-                output_lines = output.split('\n')
+                book_output = capture.get()
+                output_lines = book_output.split('\n')
                 if len(output_lines) > height:
                     output_lines = output_lines[:height]
-                    output = '\n'.join(output_lines)
-                
-                sys.stdout.write(output)
+                    book_output = '\n'.join(output_lines)
                 
             elif config.UI_COMPLEXITY_MODE == 1:
                 # Mode 1: Medium - top bar with title and progress, borders, no bottom controls
@@ -660,13 +714,11 @@ async def display_ui(reader):
                 with temp_console.capture() as capture:
                     temp_console.print(book_panel, end='', overflow='crop')
                 
-                output = capture.get()
-                output_lines = output.split('\n')
+                book_output = capture.get()
+                output_lines = book_output.split('\n')
                 if len(output_lines) > height:
                     output_lines = output_lines[:height]
-                    output = '\n'.join(output_lines)
-                
-                sys.stdout.write(output)
+                    book_output = '\n'.join(output_lines)
                 
             else:
                 # Mode 2: Full - default mode with all UI elements
@@ -708,14 +760,38 @@ async def display_ui(reader):
                 with temp_console.capture() as capture:
                     temp_console.print(book_panel, end='', overflow='crop')
                 
-                output = capture.get()
-                output_lines = output.split('\n')
+                book_output = capture.get()
+                output_lines = book_output.split('\n')
                 if len(output_lines) > height:
                     output_lines = output_lines[:height]
-                    output = '\n'.join(output_lines)
-                
-                sys.stdout.write(output)
+                    book_output = '\n'.join(output_lines)
             
+            # Append book content to full output
+            full_output += book_output
+            
+            # Overlay menu if needed
+            if reader.show_recent_menu:
+                menu_panel, panel_width, panel_height = render_recent_books_overlay(reader, width, height)
+                with temp_console.capture() as capture:
+                    temp_console.print(menu_panel, end='', overflow='crop')
+                menu_output = capture.get()
+                
+                # Split menu output into lines
+                menu_lines = menu_output.split('\n')
+                
+                start_y = (height - panel_height) // 2
+                start_x = (width - panel_width) // 2
+                
+                # Construct overlay string using ANSI cursor movements
+                overlay = ""
+                for i, line in enumerate(menu_lines):
+                    if i >= panel_height: break
+                    # Move cursor to (start_y + i, start_x) - 1-based coordinates
+                    overlay += f"\033[{start_y + i + 1};{start_x + 1}H{line}"
+                
+                full_output += overlay
+
+            sys.stdout.write(full_output)
             sys.stdout.flush()
             
         except (IndexError, ValueError):

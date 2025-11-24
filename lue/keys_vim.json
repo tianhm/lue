@@ -24,6 +24,8 @@
     "cycle_ui_complexity": "v"
   },
   "application": {
-    "quit": "q"
+    "quit": "q",
+    "toggle_recent_menu": "r",
+    "select_menu_item": "\n"
   }
 }
