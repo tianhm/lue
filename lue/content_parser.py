@@ -76,15 +76,15 @@ def sanitize_text_for_tts(text):
     if not text or not isinstance(text, str):
         return ""
 
-    # Replace em dash with comma-space for natural pause in TTS
-    text = re.sub(r'—', ', ', text)
+    # Replace em and en dash with comma-space for natural pause in TTS
+    text = re.sub(r'[—–]', ', ', text)
     
     # Replace hyphens between alphanumeric characters with spaces
     text = re.sub(r'(?<=\w)-(?=\w)', ' ', text)
     
     # Remove special characters but keep Unicode letters, numbers, and basic punctuation
     # \w includes Unicode letters and digits, so we use a more targeted approach
-    sanitized = re.sub(r"[^\w\s.,:'-();]", '', text, flags=re.UNICODE)
+    sanitized = re.sub(r"[^\w\s.,:'-();?!]", '', text, flags=re.UNICODE)
     
     # Collapse multiple spaces into single space
     sanitized = re.sub(r'\s+', ' ', sanitized)
