@@ -76,6 +76,10 @@ def sanitize_text_for_tts(text):
     if not text or not isinstance(text, str):
         return ""
 
+    # Remove loose punctuation marks (periods, exclamation, question marks)
+    # that are standalone (surrounded by whitespace or start/end of string).
+    text = re.sub(r'(?:^|\s)[.!?]+(?=\s|$)', ' ', text)
+
     # Replace em and en dash with comma-space for natural pause in TTS
     text = re.sub(r'[—–]', ', ', text)
     
