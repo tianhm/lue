@@ -649,32 +649,47 @@ async def display_ui(reader):
             reader.last_terminal_size = (width, height)
             
             visible_lines = get_visible_content(reader)
-            book_content = Text("")
-            for i, line in enumerate(visible_lines):
-                book_content.append(line)
-                if i < len(visible_lines) - 1:
-                    book_content.append("\n")
             
             # Start building the full output buffer
-            # Clear screen and hide cursor
-            full_output = '\033[?25l\033[2J\033[H'
+            # Move cursor to top-left and hide cursor
+            # We avoid clearing the whole screen (\033[2J) to prevent flickering
+            full_output = '\033[?25l\033[H'
             
             temp_console = Console(width=width, height=height, force_terminal=True)
             
-            # Handle different UI complexity modes
             book_output = ""
+            
             if config.UI_COMPLEXITY_MODE == 0:
-                # Mode 0: Minimal - text only, no borders, no UI elements
+                # Mode 0: Minimal - text only, no borders
+                # Manually pad lines to overwrite screen content (prevents ghosting without clearing screen)
+                padded_content = Text()
+                
+                for i in range(height):
+                    if i < len(visible_lines):
+                        line = visible_lines[i].copy()
+                        pad_len = width - line.cell_len
+                        if pad_len > 0:
+                            line.append(" " * pad_len)
+                        padded_content.append(line)
+                    else:
+                        padded_content.append(" " * width)
+                    
+                    if i < height - 1:
+                        padded_content.append("\n")
+                
                 with temp_console.capture() as capture:
-                    temp_console.print(book_content, end='', overflow='crop')
+                    temp_console.print(padded_content, end='', overflow='crop')
                 
                 book_output = capture.get()
-                output_lines = book_output.split('\n')
-                if len(output_lines) > height:
-                    output_lines = output_lines[:height]
-                    book_output = '\n'.join(output_lines)
                 
             elif config.UI_COMPLEXITY_MODE == 1:
+                # Build book_content for Mode 1 and 2
+                book_content = Text("")
+                for i, line in enumerate(visible_lines):
+                    book_content.append(line)
+                    if i < len(visible_lines) - 1:
+                        book_content.append("\n")
+
                 # Mode 1: Medium - top bar with title and progress, borders, no bottom controls
                 progress_bar_width = 10
                 filled_blocks = int((progress_percent / 100) * progress_bar_width)
@@ -721,6 +736,13 @@ async def display_ui(reader):
                     book_output = '\n'.join(output_lines)
                 
             else:
+                # Build book_content for Mode 1 and 2
+                book_content = Text("")
+                for i, line in enumerate(visible_lines):
+                    book_content.append(line)
+                    if i < len(visible_lines) - 1:
+                        book_content.append("\n")
+
                 # Mode 2: Full - default mode with all UI elements
                 progress_bar_width = 10
                 filled_blocks = int((progress_percent / 100) * progress_bar_width)
