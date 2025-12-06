@@ -438,8 +438,6 @@ def extract_content(file_path, console):
         return _extract_content_txt(file_path, console)
     elif file_extension == '.docx':
         return _extract_content_docx(file_path, console)
-    elif file_extension == '.doc':
-        return _extract_content_doc(file_path, console)
     elif file_extension == '.html':
         return _extract_content_html(file_path, console)
     elif file_extension == '.rtf':
@@ -448,7 +446,7 @@ def extract_content(file_path, console):
         return _extract_content_md(file_path, console)
     else:
         console.print(f"[bold red]Error: Unsupported file type '{file_extension}'. "
-                     f"Supported formats: .epub, .pdf, .txt, .docx, .doc, .html, .rtf, .md[/bold red]")
+                     f"Supported formats: .epub, .pdf, .txt, .docx, .html, .rtf, .md[/bold red]")
         return []
 
 def _extract_content_epub(file_path, console):
@@ -753,51 +751,6 @@ def _extract_content_docx(file_path, console):
         console.print(f"[bold red]Error: Failed to read DOCX file: {e}[/bold red]")
         return []
         
-def _extract_content_doc(file_path, console):
-    try:
-        # Try using antiword first
-        result = subprocess.run(
-            ['antiword', file_path],
-            capture_output=True,
-            text=True,
-            check=True,
-            encoding='utf-8',
-            errors='ignore'
-        )
-        content = result.stdout.replace('\r\n', '\n').replace('\r', '\n')
-        
-        # Merge single newlines into spaces, keep paragraph breaks
-        content = re.sub(r'(?<!\n)\n(?!\n)', ' ', content)
-        content = re.sub(r' +', ' ', content)  # collapse multiple spaces
-        
-        lines = [clean_visual_text(line.strip()) for line in content.split('\n') if line.strip()]
-        lines = [line for line in lines if line and len(line) > 3]
-        return [lines]
-
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        try:
-            # Fallback: raw binary read
-            with open(file_path, 'rb') as f:
-                content = f.read()
-            
-            text = "".join(
-                chr(c) for c in content
-                if 32 <= c <= 126 or c in (9, 10, 13)
-            )
-            text = text.replace('\r\n', '\n').replace('\r', '\n')
-            
-            # Merge single newlines into spaces, keep paragraph breaks
-            text = re.sub(r'(?<!\n)\n(?!\n)', ' ', text)
-            text = re.sub(r' +', ' ', text)  # collapse multiple spaces
-            
-            lines = [clean_visual_text(line.strip()) for line in text.split('\n') if line.strip()]
-            lines = [line for line in lines if line and len(line) > 3]
-            return [lines]
-
-        except Exception as e:
-            console.print(f"[bold red]Error: Failed to read DOC file with fallback: {e}[/bold red]")
-            return []
-
 def _extract_content_rtf(file_path, console):
     """
     Extracts content from an .rtf file using the 'striprtf' library.
