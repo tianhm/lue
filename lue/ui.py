@@ -887,7 +887,9 @@ def _extract_core_word(token: str) -> str:
 def format_key_for_display(key):
     """Convert control characters to caret notation for UI display."""
     if isinstance(key, list):
-        return ", ".join(format_key_for_display(k) for k in key)
+        if key:
+            return format_key_for_display(key[0])
+        return ""
     
     if isinstance(key, str) and len(key) == 1:
         char_code = ord(key)
