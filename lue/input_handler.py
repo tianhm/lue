@@ -21,7 +21,7 @@ DEFAULT_KEYBOARD_SHORTCUTS = {
         "move_to_end": "b"
     },
     "tts_controls": {
-        "play_pause": "p",
+        "play_pause": ["p", " "],
         "decrease_speed": ",",
         "increase_speed": ".",
         "toggle_sentence_highlight": "s",
@@ -38,6 +38,12 @@ DEFAULT_KEYBOARD_SHORTCUTS = {
 
 # Global variable to store loaded keyboard shortcuts
 KEYBOARD_SHORTCUTS = DEFAULT_KEYBOARD_SHORTCUTS
+
+def _matches_shortcut(data, shortcut):
+    """Check if input data matches a shortcut (string or list)."""
+    if isinstance(shortcut, list):
+        return data in shortcut
+    return data == shortcut
 
 def load_keyboard_shortcuts(file_path=None):
     """Load keyboard shortcuts from a JSON file or use defaults.
@@ -151,51 +157,51 @@ def process_input(reader):
             app_shortcuts = KEYBOARD_SHORTCUTS.get("application", {})
             
             # Map input data to commands using loaded shortcuts
-            if data == app_shortcuts.get("quit", "q"):
+            if _matches_shortcut(data, app_shortcuts.get("quit", "q")):
                 reader.running = False
                 reader.command_received_event.set()
                 return
             
             cmd = None
-            if data == app_shortcuts.get("toggle_recent_menu", "r"):
+            if _matches_shortcut(data, app_shortcuts.get("toggle_recent_menu", "r")):
                 cmd = 'toggle_recent_menu'
-            elif data == app_shortcuts.get("select_menu_item", "\n") or data == '\r':
+            elif _matches_shortcut(data, app_shortcuts.get("select_menu_item", "\n")) or data == '\r':
                 cmd = 'select_menu_item'
-            elif data == tts_shortcuts.get("play_pause", "p"):
+            elif _matches_shortcut(data, tts_shortcuts.get("play_pause", "p")):
                 cmd = 'pause'
-            elif data == nav_shortcuts.get("prev_paragraph", "h"):
+            elif _matches_shortcut(data, nav_shortcuts.get("prev_paragraph", "h")):
                 cmd = 'prev_paragraph'
-            elif data == nav_shortcuts.get("prev_sentence", "j"):
+            elif _matches_shortcut(data, nav_shortcuts.get("prev_sentence", "j")):
                 cmd = 'prev_sentence'
-            elif data == nav_shortcuts.get("next_sentence", "k"):
+            elif _matches_shortcut(data, nav_shortcuts.get("next_sentence", "k")):
                 cmd = 'next_sentence'
-            elif data == nav_shortcuts.get("next_paragraph", "l"):
+            elif _matches_shortcut(data, nav_shortcuts.get("next_paragraph", "l")):
                 cmd = 'next_paragraph'
-            elif data == nav_shortcuts.get("scroll_page_up", "i"):
+            elif _matches_shortcut(data, nav_shortcuts.get("scroll_page_up", "i")):
                 cmd = 'scroll_page_up'
-            elif data == nav_shortcuts.get("scroll_page_down", "m"):
+            elif _matches_shortcut(data, nav_shortcuts.get("scroll_page_down", "m")):
                 cmd = 'scroll_page_down'
-            elif data == nav_shortcuts.get("scroll_up", "u"):
+            elif _matches_shortcut(data, nav_shortcuts.get("scroll_up", "u")):
                 cmd = 'scroll_up'
-            elif data == nav_shortcuts.get("scroll_down", "n"):
+            elif _matches_shortcut(data, nav_shortcuts.get("scroll_down", "n")):
                 cmd = 'scroll_down'
-            elif data == display_shortcuts.get("toggle_auto_scroll", "a"):
+            elif _matches_shortcut(data, display_shortcuts.get("toggle_auto_scroll", "a")):
                 cmd = 'toggle_auto_scroll'
-            elif data == nav_shortcuts.get("move_to_top_visible", "t"):
+            elif _matches_shortcut(data, nav_shortcuts.get("move_to_top_visible", "t")):
                 cmd = 'move_to_top_visible'
-            elif data == nav_shortcuts.get("move_to_beginning", "y"):
+            elif _matches_shortcut(data, nav_shortcuts.get("move_to_beginning", "y")):
                 cmd = 'move_to_beginning'
-            elif data == nav_shortcuts.get("move_to_end", "b"):
+            elif _matches_shortcut(data, nav_shortcuts.get("move_to_end", "b")):
                 cmd = 'move_to_end'
-            elif data == tts_shortcuts.get("decrease_speed", ","):
+            elif _matches_shortcut(data, tts_shortcuts.get("decrease_speed", ",")):
                 cmd = 'decrease_speed'
-            elif data == tts_shortcuts.get("increase_speed", "."):
+            elif _matches_shortcut(data, tts_shortcuts.get("increase_speed", ".")):
                 cmd = 'increase_speed'
-            elif data == tts_shortcuts.get("toggle_sentence_highlight", "s"):
+            elif _matches_shortcut(data, tts_shortcuts.get("toggle_sentence_highlight", "s")):
                 cmd = 'toggle_sentence_highlight'
-            elif data == tts_shortcuts.get("toggle_word_highlight", "w"):
+            elif _matches_shortcut(data, tts_shortcuts.get("toggle_word_highlight", "w")):
                 cmd = 'toggle_word_highlight'
-            elif data == display_shortcuts.get("cycle_ui_complexity", "v"):
+            elif _matches_shortcut(data, display_shortcuts.get("cycle_ui_complexity", "v")):
                 cmd = 'cycle_ui_complexity'
             
             if cmd:

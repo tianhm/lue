@@ -886,12 +886,12 @@ def _extract_core_word(token: str) -> str:
 
 def format_key_for_display(key):
     """Convert control characters to caret notation for UI display."""
+    if isinstance(key, list):
+        return ", ".join(format_key_for_display(k) for k in key)
+    
     if isinstance(key, str) and len(key) == 1:
-        # Check if it's a control character (ASCII 0-31)
         char_code = ord(key)
         if 0 <= char_code <= 31:
-            # Convert to caret notation with lowercase letter (^b, ^d, ^f, ^u)
-            # This represents the actual key combination without shift
-            return f"^{chr(char_code + 96)}"  # +96 to get lowercase letters
-    # Return the key as is if it's not a control character
+            return f"^{chr(char_code + 96)}"
+    
     return key

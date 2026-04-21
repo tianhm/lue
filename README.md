@@ -236,7 +236,7 @@ Lue comes with two built-in keyboard layouts that can be set using -k/--key comm
 
 - **Default Layout** - [keys_default.json](lue/keys_default.json) - Standard keyboard layout
 - **Vim Layout** - [keys_vim.json](lue/keys_vim.json) - Vim-style keyboard layout
-- **Custom Layout** - Customize your own navigation keys by creating your own keyboard layout json file
+- **Custom Layout** - Customize your own navigation keys by creating your own keyboard layout json file. Each command can accept a single key (e.g., `"play_pause": "p"`) or multiple keys as an array (e.g., `"play_pause": ["p", " "]`).
 
 ### Color Themes
 
