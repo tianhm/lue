@@ -301,7 +301,7 @@ async def main():
         reader.playback_speed = args.speed
         
     # Hide cursor, enable mouse tracking
-    sys.stdout.write('\033[?1000h\033[?1006h\033[?25l')
+    sys.stdout.write('\033[?1049h\033[?1000h\033[?1006h\033[?25l')
     sys.stdout.flush()
     
     fd = sys.stdin.fileno()
@@ -323,7 +323,7 @@ async def main():
         await reader.run()
 
     finally:
-        sys.stdout.write('\033[?1000l\033[?1006l\033[?25h')
+        sys.stdout.write('\033[?1049l\033[?1000l\033[?1006l\033[?25h')
         sys.stdout.flush()
         if fd is not None and old_settings is not None:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
