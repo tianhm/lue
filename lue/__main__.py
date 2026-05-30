@@ -301,7 +301,7 @@ async def main():
         reader.playback_speed = args.speed
         
     # Hide cursor, enable mouse tracking
-    sys.stdout.write('\033[?1049h\033[?1000h\033[?1006h\033[?25l')
+    sys.stdout.write('\033[?1000h\033[?1006h\033[?25l')
     sys.stdout.flush()
     
     fd = sys.stdin.fileno()
@@ -319,6 +319,10 @@ async def main():
         if not initialized and hasattr(args, 'tts') and args.tts and args.tts != "none":
             console.print(f"[bold yellow]Warning: TTS model '{args.tts}' "
                          "failed to initialize and has been disabled.[/bold yellow]")
+
+        # Switch to alternate screen buffer just before running the UI
+        sys.stdout.write('\033[?1049h')
+        sys.stdout.flush()
 
         await reader.run()
 

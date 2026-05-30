@@ -1129,8 +1129,8 @@ class Lue:
         await audio.stop_and_clear_audio(self)
         self._save_extended_progress()
         logging.info("--- Application Shutting Down ---")
-        # Disable mouse reporting and restore terminal
-        sys.stdout.write('\033[?1049l\033[?1002l\033[2J\033[H\033[?25h')
+        # Disable mouse reporting and restore terminal (switch back to main buffer)
+        sys.stdout.write('\033[?1049l\033[?1002l\033[?25h')
         sys.stdout.flush()
 
         if config.SHOW_ERRORS_ON_EXIT:
