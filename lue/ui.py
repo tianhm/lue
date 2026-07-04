@@ -269,7 +269,7 @@ def render_speed_reading_output(reader, width, height, console):
 
     with console.capture() as capture:
         console.print(padded_content, end='', overflow='crop')
-    return f"\033[H{capture.get()}"
+    return capture.get()
 
 
 def _apply_current_text_color(line):
@@ -763,14 +763,6 @@ async def display_ui(reader):
             reader.last_rendered_state = current_state
             reader.last_terminal_size = (width, height)
             
-            if getattr(reader, 'speed_reading_enabled', False):
-                temp_console = Console(width=width, height=height, force_terminal=True)
-                sys.stdout.write('\033[?25l' + render_speed_reading_output(reader, width, height, temp_console))
-                sys.stdout.flush()
-                return
-
-            visible_lines = get_visible_content(reader)
-            
             # Start building the full output buffer
             # Move cursor to top-left and hide cursor
             # We avoid clearing the whole screen (\033[2J) to prevent flickering
@@ -780,7 +772,14 @@ async def display_ui(reader):
             
             book_output = ""
             
-            if config.UI_MODE == 0 or config.UI_MODE == 3:
+            if getattr(reader, 'speed_reading_enabled', False):
+                book_output = render_speed_reading_output(reader, width, height, temp_console)
+            else:
+                visible_lines = get_visible_content(reader)
+
+            if getattr(reader, 'speed_reading_enabled', False):
+                pass
+            elif config.UI_MODE == 0 or config.UI_MODE == 3:
                 # Mode 0 or 3: Minimal - text only, no borders
                 # Manually pad lines to overwrite screen content (prevents ghosting without clearing screen)
                 padded_content = Text()
