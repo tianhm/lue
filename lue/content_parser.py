@@ -44,8 +44,20 @@ def split_into_sentences(paragraph: str) -> list[str]:
     paragraph = re.sub(initial_pattern, r"\1" + placeholder, paragraph)
     
     # 3. Split the text into sentences using the remaining punctuation.
-    # The lookbehind `(?<=[.!?])` keeps the delimiter with the sentence.
-    sentences = re.split(r'(?<=[.!?])\s+', paragraph)
+    # English and Indic languages require whitespace after punctuation.
+    # Chinese and Japanese do not require whitespace.
+    # Note: Python's `re` module requires fixed-width lookbehinds. To support
+    # optional closing quotes (0, 1, or 2) in no-space text, we unroll the conditions.
+    spaced_punc = r'[.!?।॥]'
+    cn_jp_punc = r'[。！？]'
+    quotes = r'[”」』’"\']'
+    split_pattern = (
+        rf'(?<={spaced_punc})\s+|'                              # Spaced
+        rf'(?<={cn_jp_punc})(?!{cn_jp_punc}|{quotes})\s*|'       # No-space: 0 quotes
+        rf'(?<={cn_jp_punc}{quotes})(?!{cn_jp_punc})\s*|'        # No-space: 1 quote
+        rf'(?<={cn_jp_punc}{quotes}{{2}})(?!{cn_jp_punc})\s*'    # No-space: 2 quotes
+    )
+    sentences = re.split(split_pattern, paragraph)
     
     # 4. Restore the periods and clean up the results.
     restored_sentences = []
@@ -86,9 +98,9 @@ def sanitize_text_for_tts(text):
     # Replace hyphens between alphanumeric characters with spaces
     text = re.sub(r'(?<=\w)-(?=\w)', ' ', text)
     
-    # Remove special characters but keep Unicode letters, numbers, and basic punctuation
-    # \w includes Unicode letters and digits, so we use a more targeted approach
-    sanitized = re.sub(r"[^\w\s.,:'-();?!]", '', text, flags=re.UNICODE)
+    # Remove special characters but keep Unicode letters, numbers, and basic punctuation.
+    # Include Chinese/Japanese punctuation and Indian Dandas (।॥).
+    sanitized = re.sub(r"[^\w\s.,:'();?!。，！？；：、।॥-]", '', text, flags=re.UNICODE)
     
     # Collapse multiple spaces into single space
     sanitized = re.sub(r'\s+', ' ', sanitized)
