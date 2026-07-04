@@ -498,9 +498,20 @@ def get_compact_subtitle(reader, width):
     quit_key = format_key_for_display(app_shortcuts.get("quit", "q"))
     auto_scroll_key = format_key_for_display(display_shortcuts.get("toggle_auto_scroll", "a"))
     top_visible_key = format_key_for_display(nav_shortcuts.get("move_to_top_visible", "t"))
+
+    is_epub = os.path.splitext(reader.file_path)[1].lower() == '.epub'
+    if is_epub:
+        prev_ch_key = f"{ICONS.SEPARATOR}{format_key_for_display(nav_shortcuts.get('prev_chapter', 'z'))}"
+        next_ch_key = f"{ICONS.SEPARATOR}{format_key_for_display(nav_shortcuts.get('next_chapter', 'x'))}"
+        ch_index_key = format_key_for_display(display_shortcuts.get("toggle_chapter_index", "c"))
+        chapter_index_text = f"[{COLORS.CONTROL_KEYS}]{ch_index_key}[/{COLORS.CONTROL_KEYS}] Ch "
+    else:
+        prev_ch_key = ""
+        next_ch_key = ""
+        chapter_index_text = ""
     
-    nav_text_1 = f"[{COLORS.CONTROL_KEYS}]{prev_para_key}{ICONS.SEPARATOR}{prev_sent_key}[/{COLORS.CONTROL_KEYS}]"
-    nav_text_2 = f"[{COLORS.CONTROL_KEYS}]{next_sent_key}{ICONS.SEPARATOR}{next_para_key}[/{COLORS.CONTROL_KEYS}]"
+    nav_text_1 = f"[{COLORS.CONTROL_KEYS}]{prev_para_key}{ICONS.SEPARATOR}{prev_sent_key}{prev_ch_key}[/{COLORS.CONTROL_KEYS}]"
+    nav_text_2 = f"[{COLORS.CONTROL_KEYS}]{next_sent_key}{ICONS.SEPARATOR}{next_para_key}{next_ch_key}[/{COLORS.CONTROL_KEYS}]"
     page_text = f"[{COLORS.CONTROL_KEYS}]{scroll_up_key}{ICONS.SEPARATOR}{scroll_down_key}[/{COLORS.CONTROL_KEYS}]"
     scroll_text = f"[{COLORS.CONTROL_KEYS}]{page_up_key}{ICONS.SEPARATOR}{page_down_key}[/{COLORS.CONTROL_KEYS}]"
     quit_text = f"[{COLORS.CONTROL_KEYS}]{quit_key}[/{COLORS.CONTROL_KEYS}]"
@@ -536,7 +547,7 @@ def get_compact_subtitle(reader, width):
         ui_mode_display = ui_mode_names[config.UI_MODE]
         
         # Modified controls_text to remove ui_mode_text visual display but keep functionality
-        controls_text = f"{nav_text_1} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_UP}[/{COLORS.CONTROL_ICONS}] {nav_text_2} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_DOWN}[/{COLORS.CONTROL_ICONS}] [{COLORS.SEPARATORS}]{base_sep}[/{COLORS.SEPARATORS}] {page_text} [{COLORS.ARROW_ICONS}]{ICONS.ROW_NAVIGATION}[/{COLORS.ARROW_ICONS}] {scroll_text} [{COLORS.ARROW_ICONS}]{ICONS.PAGE_NAVIGATION}[/{COLORS.ARROW_ICONS}] [{COLORS.SEPARATORS}]{base_sep}[/{COLORS.SEPARATORS}] {quit_text} [{COLORS.QUIT_ICON}]{ICONS.QUIT}[/{COLORS.QUIT_ICON}]"
+        controls_text = f"{nav_text_1} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_UP}[/{COLORS.CONTROL_ICONS}] {nav_text_2} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_DOWN}[/{COLORS.CONTROL_ICONS}] {chapter_index_text}[{COLORS.SEPARATORS}]{base_sep}[/{COLORS.SEPARATORS}] {page_text} [{COLORS.ARROW_ICONS}]{ICONS.ROW_NAVIGATION}[/{COLORS.ARROW_ICONS}] {scroll_text} [{COLORS.ARROW_ICONS}]{ICONS.PAGE_NAVIGATION}[/{COLORS.ARROW_ICONS}] [{COLORS.SEPARATORS}]{base_sep}[/{COLORS.SEPARATORS}] {quit_text} [{COLORS.QUIT_ICON}]{ICONS.QUIT}[/{COLORS.QUIT_ICON}]"
         
         playing_color = COLORS.PLAYING_STATUS if not reader.is_paused else COLORS.PAUSED_STATUS
         auto_color = COLORS.AUTO_SCROLL_ENABLED if reader.auto_scroll_enabled else COLORS.AUTO_SCROLL_DISABLED
@@ -566,7 +577,7 @@ def get_compact_subtitle(reader, width):
         ui_mode_display = ui_mode_names[config.UI_MODE]
         
         # Modified controls_text to remove ui_mode_text visual display but keep functionality
-        controls_text = f"[{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {nav_text_1} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_UP}[/{COLORS.CONTROL_ICONS}] {nav_text_2} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_DOWN}[/{COLORS.CONTROL_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {page_text} [{COLORS.ARROW_ICONS}]{ICONS.ROW_NAVIGATION}[/{COLORS.ARROW_ICONS}] {scroll_text} [{COLORS.ARROW_ICONS}]{ICONS.PAGE_NAVIGATION}[/{COLORS.ARROW_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {quit_text} [{COLORS.QUIT_ICON}]{ICONS.QUIT}[/{COLORS.QUIT_ICON}]"
+        controls_text = f"[{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {nav_text_1} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_UP}[/{COLORS.CONTROL_ICONS}] {nav_text_2} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_DOWN}[/{COLORS.CONTROL_ICONS}] {chapter_index_text}[{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {page_text} [{COLORS.ARROW_ICONS}]{ICONS.ROW_NAVIGATION}[/{COLORS.ARROW_ICONS}] {scroll_text} [{COLORS.ARROW_ICONS}]{ICONS.PAGE_NAVIGATION}[/{COLORS.ARROW_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {quit_text} [{COLORS.QUIT_ICON}]{ICONS.QUIT}[/{COLORS.QUIT_ICON}]"
         
         playing_color = COLORS.PLAYING_STATUS if not reader.is_paused else COLORS.PAUSED_STATUS
         auto_color = COLORS.AUTO_SCROLL_ENABLED if reader.auto_scroll_enabled else COLORS.AUTO_SCROLL_DISABLED
@@ -589,7 +600,7 @@ def get_compact_subtitle(reader, width):
         ui_mode_display = ui_mode_names[config.UI_MODE]
         
         # Modified controls_text to remove ui_mode_text visual display but keep functionality
-        controls_text = f"[{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {nav_text_1} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_UP}[/{COLORS.CONTROL_ICONS}] {nav_text_2} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_DOWN}[/{COLORS.CONTROL_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {page_text} [{COLORS.ARROW_ICONS}]{ICONS.ROW_NAVIGATION}[/{COLORS.ARROW_ICONS}] {scroll_text} [{COLORS.ARROW_ICONS}]{ICONS.PAGE_NAVIGATION}[/{COLORS.ARROW_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {quit_text} [{COLORS.QUIT_ICON}]{ICONS.QUIT}[/{COLORS.QUIT_ICON}]"
+        controls_text = f"[{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {nav_text_1} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_UP}[/{COLORS.CONTROL_ICONS}] {nav_text_2} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_DOWN}[/{COLORS.CONTROL_ICONS}] {chapter_index_text}[{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {page_text} [{COLORS.ARROW_ICONS}]{ICONS.ROW_NAVIGATION}[/{COLORS.ARROW_ICONS}] {scroll_text} [{COLORS.ARROW_ICONS}]{ICONS.PAGE_NAVIGATION}[/{COLORS.ARROW_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {quit_text} [{COLORS.QUIT_ICON}]{ICONS.QUIT}[/{COLORS.QUIT_ICON}]"
         
         playing_color = COLORS.PLAYING_STATUS if not reader.is_paused else COLORS.PAUSED_STATUS
         auto_color = COLORS.AUTO_SCROLL_ENABLED if reader.auto_scroll_enabled else COLORS.AUTO_SCROLL_DISABLED
@@ -612,7 +623,7 @@ def get_compact_subtitle(reader, width):
         ui_mode_display = ui_mode_names[config.UI_MODE]
         
         # Modified controls_text to remove ui_mode_text visual display but keep functionality
-        controls_text = f"[{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {nav_text_1} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_UP}[/{COLORS.CONTROL_ICONS}] {nav_text_2} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_DOWN}[/{COLORS.CONTROL_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {page_text} [{COLORS.ARROW_ICONS}]{ICONS.ROW_NAVIGATION}[/{COLORS.ARROW_ICONS}] {scroll_text} [{COLORS.ARROW_ICONS}]{ICONS.PAGE_NAVIGATION}[/{COLORS.ARROW_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {quit_text} [{COLORS.QUIT_ICON}]{ICONS.QUIT}[/{COLORS.QUIT_ICON}]"
+        controls_text = f"[{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {nav_text_1} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_UP}[/{COLORS.CONTROL_ICONS}] {nav_text_2} [{COLORS.CONTROL_ICONS}]{ICONS.HIGHLIGHT_DOWN}[/{COLORS.CONTROL_ICONS}] {chapter_index_text}[{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {page_text} [{COLORS.ARROW_ICONS}]{ICONS.ROW_NAVIGATION}[/{COLORS.ARROW_ICONS}] {scroll_text} [{COLORS.ARROW_ICONS}]{ICONS.PAGE_NAVIGATION}[/{COLORS.ARROW_ICONS}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {quit_text} [{COLORS.QUIT_ICON}]{ICONS.QUIT}[/{COLORS.QUIT_ICON}]"
         
         playing_color = COLORS.PLAYING_STATUS if not reader.is_paused else COLORS.PAUSED_STATUS
         auto_color = COLORS.AUTO_SCROLL_ENABLED if reader.auto_scroll_enabled else COLORS.AUTO_SCROLL_DISABLED
@@ -667,6 +678,60 @@ def render_recent_books_overlay(reader, width, height):
     
     return panel, panel_width, panel_height
 
+def render_chapter_index_overlay(reader, width, height):
+    """Render the chapter index overlay for navigation."""
+    sel = reader.chapter_index_selection_idx
+    scroll_offset = reader.chapter_index_scroll_offset
+    total = len(reader.chapters)
+    panel_height = min(total + 4, height - 4)
+    max_visible = max(1, panel_height - 4)
+
+    table = Table(box=None, show_header=False, padding=0, expand=True)
+    table.add_column("Selection", width=2)
+    table.add_column("Current", width=2)
+    table.add_column("Title", ratio=1, no_wrap=True, overflow="ellipsis")
+
+    for i in range(scroll_offset, min(scroll_offset + max_visible, total)):
+        chapter = reader.chapters[i]
+        is_selected = i == sel
+        is_current = i == reader.chapter_idx
+
+        if is_selected:
+            style = "reverse bold cyan"
+            prefix = ">"
+        else:
+            style = COLORS.TEXT_NORMAL
+            prefix = " "
+        current_marker = "*" if is_current else " "
+
+        title = f"Chapter {i + 1}"
+        for para in chapter:
+            stripped = para.strip()
+            if stripped and len(stripped) > 3:
+                title = stripped
+                if len(title) > 60:
+                    title = title[:57] + "..."
+                break
+
+        table.add_row(
+            prefix,
+            current_marker,
+            Text(title, overflow="ellipsis", no_wrap=True),
+            style=style
+        )
+
+    panel = Panel(
+        table,
+        title="[bold cyan]Chapters[/bold cyan]",
+        border_style="cyan",
+        box=box.ROUNDED,
+        width=min(60, width - 4),
+        height=panel_height,
+        padding=(1, 1)
+    )
+
+    return panel, min(60, width - 4), panel_height
+
 async def display_ui(reader):
     """Display the UI."""
     if reader.render_lock.locked():
@@ -687,7 +752,9 @@ async def display_ui(reader):
                 # Add playback speed to trigger UI updates when speed changes
                 reader.playback_speed, getattr(reader, 'speed_reading_enabled', False), config.UI_MODE,
                 # Add recent menu state to trigger updates
-                reader.show_recent_menu, reader.recent_menu_selection_idx
+                reader.show_recent_menu, reader.recent_menu_selection_idx,
+                # Add chapter index state to trigger updates
+                reader.show_chapter_index, reader.chapter_index_selection_idx
             )
             
             if reader.last_rendered_state == current_state and reader.last_terminal_size == (width, height):
@@ -865,6 +932,31 @@ async def display_ui(reader):
                     # Move cursor to (start_y + i, start_x) - 1-based coordinates
                     overlay += f"\033[{start_y + i + 1};{start_x + 1}H{line}"
                 
+                full_output += overlay
+
+            # Overlay chapter index if needed
+            if reader.show_chapter_index:
+                chapter_panel, panel_width, panel_height = render_chapter_index_overlay(reader, width, height)
+                with temp_console.capture() as capture:
+                    temp_console.print(chapter_panel, end='', overflow='crop')
+                chapter_output = capture.get()
+
+                chapter_lines = chapter_output.split('\n')
+
+                start_y = (height - panel_height) // 2
+                start_x = (width - panel_width) // 2
+
+                # Store position info on reader for mouse click handling
+                reader.chapter_index_panel_y = start_y
+                reader.chapter_index_panel_x = start_x
+                reader.chapter_index_panel_width = panel_width
+                reader.chapter_index_panel_height = panel_height
+
+                overlay = ""
+                for i, line in enumerate(chapter_lines):
+                    if i >= panel_height: break
+                    overlay += f"\033[{start_y + i + 1};{start_x + 1}H{line}"
+
                 full_output += overlay
 
             sys.stdout.write(full_output)

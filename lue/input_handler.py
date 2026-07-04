@@ -17,6 +17,8 @@ DEFAULT_KEYBOARD_SHORTCUTS = {
         "scroll_up": "u",
         "scroll_down": "n",
         "move_to_top_visible": "t",
+        "next_chapter": "x",
+        "prev_chapter": "z",
         "move_to_beginning": "y",
         "move_to_end": "b"
     },
@@ -29,7 +31,8 @@ DEFAULT_KEYBOARD_SHORTCUTS = {
     },
     "display_controls": {
         "toggle_auto_scroll": "a",
-        "cycle_ui_complexity": "v"
+        "cycle_ui_complexity": "v",
+        "toggle_chapter_index": "c"
     },
     "application": {
         "quit": "q"
@@ -66,9 +69,8 @@ def load_keyboard_shortcuts(file_path=None):
 def process_input(reader):
     """Process user input from stdin."""
     try:
-        if select.select([sys.stdin], [], [], 0)[0]:
+        while select.select([sys.stdin], [], [], 0)[0]:
             data = sys.stdin.read(1)
-            
             if not data:
                 return
             
@@ -96,12 +98,16 @@ def process_input(reader):
                                     
                                     if mouse_part.endswith('M'):
                                         if button == 0:
+                                            if reader.show_chapter_index:
+                                                reader.loop.call_soon_threadsafe(reader._post_command_sync, ('chapter_click', (x_pos, y_pos)))
+                                                continue
+
                                             if reader._is_click_on_progress_bar(x_pos, y_pos):
                                                 if reader._handle_progress_bar_click(x_pos, y_pos):
-                                                    return
+                                                    continue
                                             
                                             if not reader._is_click_on_text(x_pos, y_pos):
-                                                return
+                                                continue
 
                                             # Cancel any pending restart task before killing audio
                                             if hasattr(reader, 'pending_restart_task') and reader.pending_restart_task and not reader.pending_restart_task.done():
@@ -117,10 +123,10 @@ def process_input(reader):
                                             if reader.auto_scroll_enabled:
                                                 reader.auto_scroll_enabled = False
                                             reader.loop.call_soon_threadsafe(reader._post_command_sync, 'wheel_scroll_down')
-                                    return
+                                    continue
                             except (ValueError, IndexError):
                                 pass
-                    return
+                    continue
                 
                 elif reader.mouse_sequence_buffer.startswith('\x1b[') and len(reader.mouse_sequence_buffer) >= 3 and data in 'ABCD':
                     sequence = reader.mouse_sequence_buffer
@@ -128,8 +134,15 @@ def process_input(reader):
                     reader.mouse_sequence_active = False
                     
                     if reader.show_recent_menu:
-                        return
-                    
+                        continue
+
+                    if reader.show_chapter_index:
+                        if data == 'A':
+                            reader.loop.call_soon_threadsafe(reader._post_command_sync, 'scroll_up')
+                        elif data == 'B':
+                            reader.loop.call_soon_threadsafe(reader._post_command_sync, 'scroll_down')
+                        continue
+
                     _kill_audio_immediately(reader)
                     cmd = None
                     if data == 'C':
@@ -143,9 +156,9 @@ def process_input(reader):
                     
                     if cmd:
                         reader.loop.call_soon_threadsafe(reader._post_command_sync, cmd)
-                    return
+                    continue
                 
-                return
+                continue
             
             reader.mouse_sequence_buffer = ''
             reader.mouse_sequence_active = False
@@ -177,6 +190,10 @@ def process_input(reader):
                 cmd = 'next_sentence'
             elif _matches_shortcut(data, nav_shortcuts.get("next_paragraph", "l")):
                 cmd = 'next_paragraph'
+            elif _matches_shortcut(data, nav_shortcuts.get("next_chapter", "x")):
+                cmd = 'next_chapter'
+            elif _matches_shortcut(data, nav_shortcuts.get("prev_chapter", "z")):
+                cmd = 'prev_chapter'
             elif _matches_shortcut(data, nav_shortcuts.get("scroll_page_up", "i")):
                 cmd = 'scroll_page_up'
             elif _matches_shortcut(data, nav_shortcuts.get("scroll_page_down", "m")):
@@ -203,6 +220,8 @@ def process_input(reader):
                 cmd = 'toggle_word_highlight'
             elif _matches_shortcut(data, display_shortcuts.get("cycle_ui_complexity", "v")):
                 cmd = 'cycle_ui_complexity'
+            elif _matches_shortcut(data, display_shortcuts.get("toggle_chapter_index", "c")):
+                cmd = 'toggle_chapter_index'
             
             if cmd:
                 reader.loop.call_soon_threadsafe(reader._post_command_sync, cmd)

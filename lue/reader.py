@@ -52,6 +52,15 @@ class Lue:
         self.recent_books_list = []
         self.recent_menu_selection_idx = 0
 
+        # Chapter index overlay state
+        self.show_chapter_index = False
+        self.chapter_index_selection_idx = 0
+        self.chapter_index_scroll_offset = 0
+        self.chapter_index_panel_x = 0
+        self.chapter_index_panel_y = 0
+        self.chapter_index_panel_width = 0
+        self.chapter_index_panel_height = 0
+
     def _initialize_tts(self, tts_model):
         """Initialize TTS-related state."""
         self.tts_model = tts_model
@@ -113,7 +122,59 @@ class Lue:
         
         # Force UI update
         asyncio.create_task(ui.display_ui(self))
-        
+
+    def _chapter_name(self, idx):
+        """Return a human-readable name for a chapter by index."""
+        chapter = self.chapters[idx]
+        for para in chapter:
+            stripped = para.strip()
+            if stripped and len(stripped) > 3:
+                return stripped[:60]
+        return f"Chapter {idx + 1}"
+
+    def _update_chapter_index_scroll(self):
+        """Keep the chapter index scroll window aligned with the selection."""
+        total = len(self.chapters)
+        _, height = ui.get_terminal_size()
+        panel_height = min(total + 4, height - 4)
+        max_visible = max(1, panel_height - 4)
+        offset = self.chapter_index_scroll_offset
+        if offset > total - max_visible:
+            offset = max(0, total - max_visible)
+        if offset < 0:
+            offset = 0
+        sel = self.chapter_index_selection_idx
+        if sel < offset:
+            offset = sel
+        if sel >= offset + max_visible:
+            offset = max(0, sel - max_visible + 1)
+        self.chapter_index_scroll_offset = offset
+
+    def _get_first_valid_paragraph_in_chapter(self, chapter_idx):
+        """Return the first non-formatting paragraph index in a chapter."""
+        for i, para in enumerate(self.chapters[chapter_idx]):
+            if para.strip() and len(para.strip()) > 3:
+                return i
+        return 0
+
+    async def _jump_to_chapter(self, chapter_idx):
+        """Jump to a specific chapter by index."""
+        if not 0 <= chapter_idx < len(self.chapters):
+            return
+        self.show_chapter_index = False
+        para_idx = self._get_first_valid_paragraph_in_chapter(chapter_idx)
+        self.chapter_idx = self.ui_chapter_idx = chapter_idx
+        self.paragraph_idx = self.ui_paragraph_idx = para_idx
+        self.sentence_idx = self.ui_sentence_idx = 0
+        self.first_sentence_jump = False
+        self._scroll_to_position_immediate(chapter_idx, para_idx, 0)
+        self._save_extended_progress(sync_audio_position=True)
+        if not self.is_paused and self.tts_model:
+            self.pending_restart_task = asyncio.create_task(self._restart_audio_after_navigation())
+        else:
+            await audio.stop_and_clear_audio(self)
+        asyncio.create_task(ui.display_ui(self))
+
     def _initialize_progress(self):
         """Initialize reading progress from saved state."""
         progress_data = progress_manager.load_extended_progress(self.progress_file)
@@ -642,6 +703,13 @@ class Lue:
     def _advance_position(self, current_pos, mode='sentence', wrap=True):
         c, p, s = current_pos
         if mode == 'paragraph': p, s = p + 1, 0
+        elif mode == 'chapter':
+            c += 1
+            if c < len(self.chapters):
+                p = self._get_first_valid_paragraph_in_chapter(c)
+                s = 0
+            else:
+                p, s = 0, 0
         else: s += 1
         while c < len(self.chapters):
             if p < len(self.chapters[c]):
@@ -657,6 +725,13 @@ class Lue:
         c, p, s = current_pos
         if mode == 'paragraph':
             p, s = p - 1, 0
+        elif mode == 'chapter':
+            c -= 1
+            if c >= 0:
+                p = self._get_first_valid_paragraph_in_chapter(c)
+                s = 0
+            else:
+                p, s = 0, 0
         else:
             s -= 1
 
@@ -1200,6 +1275,7 @@ class Lue:
             if cmd == 'toggle_recent_menu':
                 self.show_recent_menu = not self.show_recent_menu
                 if self.show_recent_menu:
+                    self.show_chapter_index = False
                     self.recent_books_list = progress_manager.get_recent_books()
                     self.recent_menu_selection_idx = 0
                     # Pause TTS when menu opens
@@ -1211,8 +1287,69 @@ class Lue:
                 asyncio.create_task(ui.display_ui(self))
                 continue
 
-            if self.show_recent_menu:
+            if cmd == 'toggle_chapter_index':
+                if len(self.chapters) <= 1:
+                    continue
+                self.show_chapter_index = not self.show_chapter_index
+                if self.show_chapter_index:
+                    self.show_recent_menu = False
+                    self.chapter_index_selection_idx = self.chapter_idx
+                    self._update_chapter_index_scroll()
+                    if not self.is_paused:
+                        self.is_paused = True
+                        self._save_extended_progress()
+                        await audio.stop_and_clear_audio(self)
+                asyncio.create_task(ui.display_ui(self))
+                continue
+
+            if self.show_chapter_index:
                 if cmd in ['prev_sentence', 'prev_paragraph', 'scroll_up', 'scroll_page_up', 'wheel_scroll_up', 'move_to_beginning']:
+                    if self.chapter_index_selection_idx > 0:
+                        self.chapter_index_selection_idx -= 1
+                    else:
+                        self.chapter_index_selection_idx = len(self.chapters) - 1
+                    self._update_chapter_index_scroll()
+                    asyncio.create_task(ui.display_ui(self))
+                    continue
+                elif cmd in ['next_sentence', 'next_paragraph', 'scroll_down', 'scroll_page_down', 'wheel_scroll_down', 'move_to_end']:
+                    if self.chapter_index_selection_idx < len(self.chapters) - 1:
+                        self.chapter_index_selection_idx += 1
+                    else:
+                        self.chapter_index_selection_idx = 0
+                    self._update_chapter_index_scroll()
+                    asyncio.create_task(ui.display_ui(self))
+                    continue
+                elif cmd in ['prev_chapter']:
+                    if self.chapter_index_selection_idx > 0:
+                        self.chapter_index_selection_idx -= 1
+                    self._update_chapter_index_scroll()
+                    asyncio.create_task(ui.display_ui(self))
+                    continue
+                elif cmd in ['next_chapter']:
+                    if self.chapter_index_selection_idx < len(self.chapters) - 1:
+                        self.chapter_index_selection_idx += 1
+                    self._update_chapter_index_scroll()
+                    asyncio.create_task(ui.display_ui(self))
+                    continue
+                elif cmd == 'select_menu_item':
+                    if 0 <= self.chapter_index_selection_idx < len(self.chapters):
+                        await self._jump_to_chapter(self.chapter_index_selection_idx)
+                    continue
+                elif cmd == 'toggle_chapter_index':
+                    self.show_chapter_index = False
+                    asyncio.create_task(ui.display_ui(self))
+                    continue
+                elif cmd == 'quit':
+                    pass
+                elif cmd == '_resize':
+                    pass
+                elif isinstance(cmd, tuple):
+                    pass
+                else:
+                    continue
+
+            if self.show_recent_menu:
+                if cmd in ['prev_sentence', 'prev_paragraph', 'prev_chapter', 'scroll_up', 'scroll_page_up', 'wheel_scroll_up', 'move_to_beginning']:
                     if self.recent_books_list:
                         if self.recent_menu_selection_idx == 0:
                             self.recent_menu_selection_idx = len(self.recent_books_list) - 1
@@ -1220,7 +1357,7 @@ class Lue:
                             self.recent_menu_selection_idx -= 1
                     asyncio.create_task(ui.display_ui(self))
                     continue
-                elif cmd in ['next_sentence', 'next_paragraph', 'scroll_down', 'scroll_page_down', 'wheel_scroll_down', 'move_to_end']:
+                elif cmd in ['next_sentence', 'next_paragraph', 'next_chapter', 'scroll_down', 'scroll_page_down', 'wheel_scroll_down', 'move_to_end']:
                     if self.recent_books_list:
                         if self.recent_menu_selection_idx == len(self.recent_books_list) - 1:
                             self.recent_menu_selection_idx = 0
@@ -1286,6 +1423,19 @@ class Lue:
                         self.auto_scroll_enabled = False
                         self._save_extended_progress(sync_audio_position=True)
                         self.pending_restart_task = asyncio.create_task(self._restart_audio_after_navigation())
+                elif command_name == 'chapter_click':
+                    x, y = data
+                    panel_x = self.chapter_index_panel_x
+                    panel_y = self.chapter_index_panel_y
+                    panel_w = self.chapter_index_panel_width
+                    panel_h = self.chapter_index_panel_height
+                    # Mouse coords are 1-based, panel_x/panel_y are 0-based
+                    if panel_x + 1 <= x <= panel_x + panel_w and panel_y + 1 <= y <= panel_y + panel_h:
+                        row = y - panel_y - 3  # 1-based to 0-based, minus border + padding
+                        if row >= 0:
+                            chapter_idx = self.chapter_index_scroll_offset + row
+                            if 0 <= chapter_idx < len(self.chapters):
+                                await self._jump_to_chapter(chapter_idx)
                 continue
             
             if cmd == 'quit': break
@@ -1427,6 +1577,9 @@ class Lue:
                 # Force immediate UI update
                 asyncio.create_task(ui.display_ui(self))
             elif 'next' in cmd or 'prev' in cmd:
+                mode = cmd.split('_')[1] if '_' in cmd else ''
+                if mode == 'chapter' and len(self.chapters) <= 1:
+                    continue
                 if config.SMOOTH_SCROLLING_ENABLED:
                     self._handle_navigation_smooth(cmd)
                 else:

@@ -9,6 +9,8 @@
     "scroll_up": "u",
     "scroll_down": "n",
     "move_to_top_visible": "t",
+    "next_chapter": "x",
+    "prev_chapter": "z",
     "move_to_beginning": "y",
     "move_to_end": "b"
   },
@@ -21,7 +23,8 @@
   },
   "display_controls": {
     "toggle_auto_scroll": "a",
-    "cycle_ui_complexity": "v"
+    "cycle_ui_complexity": "v",
+    "toggle_chapter_index": "c"
   },
   "application": {
     "quit": "q",
