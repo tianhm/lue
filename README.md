@@ -1,38 +1,33 @@
 <div align="center">
 
-<img src="https://github.com/superstarryeyes/lue/blob/main/images/lue-icon.png?raw=true" alt="Lue Icon" width="35%" />
+<img src="images/lue-icon.png" alt="Lue Icon" width="35%" />
 
 ### Lue - Terminal eBook Reader with Text-to-Speech
-[![License: GPL v3+](https://img.shields.io/badge/License-GPLv3+-86c9fa.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Python](https://img.shields.io/badge/python-3.10+-86c9fa.svg)](https://www.python.org/downloads/)
-[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows%20(WSL)-86c9fa)](https://github.com/superstarryeyes/lue)
-[![Terminal](https://img.shields.io/badge/interface-terminal-86c9fa.svg)](https://github.com/superstarryeyes/lue)
-[![Discord](https://img.shields.io/badge/Discord-Join%20our%20Community-5865F2?logo=discord&logoColor=white)](https://discord.gg/z8sE2gnMNk)
 
-[Features](#-features) • [Quick Start](#-quick-start-macos-and-linux) • [Installation](#-installation-macos-linux-and-windows) • [Usage](#-usage) • [Customize](#️-customize) • [Development](#-development)
+<img src="images/lue-screenshot.gif" alt="Lue Screenshot" width="100%" />
 
-<img src="https://github.com/superstarryeyes/lue/blob/main/images/lue-screenshot.gif" alt="Lue Screenshot" width="100%" />
+Lue is a versatile terminal eBook and document reader that is designed to seamlessly blend reading and listening. Built with multi-format support and modular multi-lingual text-to-speech integration, it provides synchronized word highlighting, smooth auto-scrolling, chapter navigation and persistent progress tracking to keep your reading workflow simple and streamlined.
 
 </div>
 
 ---
 
-## ✨ Features
+## Features
 
 | **Feature**                             | **Description**                                                                                |
 | --------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| **📖 Multi-Format Support**             | Support for EPUB, PDF, TXT, DOCX, DOC, HTML, RTF, and Markdown with seamless format detection  |
-| **👄 Modular TTS System**               | Edge TTS (default) and Kokoro TTS (local/offline) with extensible architecture for new models  |
-| **🌍 Cross-Platform & Multilingual**    | Full support for macOS, Linux, Windows (via WSL) with 100+ languages and consistent global experience    |
-| **🎛️ Speed Adjustment**                 | Adjust text-to-speech playback speed from 1x to 3x for personalized listening experience       |
-| **🎯 Auto-Scroll & Precise Word Highlighting**        | Automatic scrolling and word-level highlighting synchronized with actual speech, improving focus and concentration     |
-| **💾 Smart Persistence**                | Automatic progress saving, state restoration, and cross-session continuity for seamless reading|
-| **⚡️ Fast Navigation**                  | Intuitive shortcuts, flexible controls, mouse support and optional smooth scrolling for efficient book navigation     |
-| **⚙️ Extensive Customization**          | Fully customizable keyboard layouts (including Vim-style bindings), adjustable UI elements, colors, and display modes|
+| **Multi-Format Support**             | Support for EPUB, PDF, TXT, DOCX, HTML, RTF, and Markdown with seamless format detection  |
+| **Modular TTS System**               | Edge TTS (default) and Kokoro TTS (local/offline) with extensible architecture for new models  |
+| **Cross-Platform & Multilingual**    | Full support for macOS, Linux, Windows (via WSL) with 100+ languages and consistent global experience    |
+| **Speed Adjustment**                 | Adjust text-to-speech playback speed from 1x to 3x for personalized listening experience       |
+| **Auto-Scroll & Precise Word Highlighting**        | Automatic scrolling and word-level highlighting synchronized with actual speech, improving focus and concentration     |
+| **Smart Persistence**                | Automatic progress saving, state restoration, and cross-session continuity for seamless reading|
+| **Fast Navigation**                  | Intuitive shortcuts, mouse support, smooth scrolling and chapters list for fast navigation.     |
+| **Extensive Customization**          | Fully customizable keyboard layouts (including Vim-style bindings), adjustable UI elements, colors, and display modes|
 
 ---
 
-## 🚀 Quick Start (macOS and Linux)
+## Quick Start (macOS and Linux)
 
 > **Want to try Lue right away?** Follow these simple steps:
 
@@ -53,11 +48,11 @@ lue --guide
 lue path/to/your/book.epub 
 ```
 
-> **📝 Note:** Quick start uses Edge TTS (requires internet). For offline capabilities, see [full installation](#-installation-macos-linux-and-windows).
+> **Note:** Quick start uses Edge TTS (requires internet). For offline capabilities, see [full installation](#-installation-macos-linux-and-windows).
 
 ---
 
-## 📦 Installation (macOS, Linux and Windows)
+## Installation (macOS, Linux and Windows)
 
 ### Prerequisites
 
@@ -111,7 +106,7 @@ sudo apt install espeak
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/superstarryeyes/lue.git
+git clone https://github.com/paulilaaso/lue.git
 cd lue
 
 # 2. Install dependencies
@@ -146,7 +141,7 @@ pip install .
 
 ---
 
-## 💻 Usage
+## Usage
 
 ### Basic Commands
 
@@ -222,11 +217,11 @@ lue -m 3 path/to/your/book.epub
 
 ### Mouse Controls
 
-- **🖱️ Click** - Jump to sentence
-- **🔄 Scroll** - Navigate content  
-- **📍 Progress bar click** - Jump to position
+- **Click** - Jump to sentence
+- **Scroll** - Navigate content  
+- **Progress bar click** - Jump to position
 
-## ⚙️ Customize
+## Customize
 
 ### UI Modes
 
@@ -257,7 +252,7 @@ Lue allows you to customize the color theme, visual icons/symbols and all ui ele
 
 ---
 
-## 🧩 Development
+## Development
 
 > **Interested in extending Lue?** 
 
@@ -277,17 +272,7 @@ Check out the [Developer Guide](DEVELOPER.md) for instructions on adding new TTS
 
 ---
 
-## 🛠️ Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-Join our Discord community for discussions, support and collaboration for creating modules for new TTS models!
-
-[![Join our Discord](https://img.shields.io/badge/Discord-Join%20Us-5865F2?logo=discord&style=for-the-badge)](https://discord.gg/z8sE2gnMNk)
-
----
-
-## 📄 License
+## License
 
 This project is licensed under the **GPL-3.0-or-later License** - see the [LICENSE](LICENSE) file for details.
 
@@ -296,9 +281,5 @@ This project is licensed under the **GPL-3.0-or-later License** - see the [LICEN
 <div align="center">
 
 <a title="This tool is Tool of The Week on Terminal Trove, The $HOME of all things in the terminal" href="https://terminaltrove.com/"><img src="https://cdn.terminaltrove.com/media/badges/tool_of_the_week/png/terminal_trove_tool_of_the_week_gold_transparent.png" width="40%" alt="Terminal Trove Tool of The Week" /></a>
-
-*Made with 💖 for CLI enthusiasts and bookworms*
-
-**⭐ Star this repo** if you find it useful!
 
 </div>

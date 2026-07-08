@@ -9,7 +9,7 @@ description = "A terminal-based eBook reader with modular text-to-speech capabil
 readme = "README.md"
 license = {text = "GPL-3.0-or-later"}
 authors = [
-    {name = "Starry Eyes"}
+    {name = "Lue contributors"}
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -46,9 +46,9 @@ kokoro = [
 lue = "lue.__main__:cli"
 
 [project.urls]
-Homepage = "https://github.com/superstarryeyes/lue"
-Repository = "https://github.com/superstarryeyes/lue"
-Issues = "https://github.com/superstarryeyes/lue/issues"
+Homepage = "https://github.com/paulilaaso/lue"
+Repository = "https://github.com/paulilaaso/lue"
+Issues = "https://github.com/paulilaaso/lue/issues"
 
 [tool.setuptools.packages.find]
 include = ["lue*"]
