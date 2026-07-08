@@ -6,5 +6,5 @@ with modular TTS system featuring Edge TTS (default) and Kokoro TTS (local/offli
 Rich terminal UI with smart persistence and cross-platform support.
 """
 
-__version__ = "0.4.0"
-__author__ = "Starry Eyes"
+__version__ = "0.5.0"
+__author__ = "Lue contributors"
