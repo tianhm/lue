@@ -7,7 +7,7 @@ name = "lue-reader"
 version = "0.5.0"
 description = "A terminal-based eBook reader with modular text-to-speech capabilities and multi-format support"
 readme = "README.md"
-license = "GPL-3.0-or-later"
+license = { file = "LICENSE" }
 authors = [
     {name = "Lue contributors"}
 ]
