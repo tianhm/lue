@@ -31,6 +31,7 @@ class Lue:
         """Initialize basic application state."""
         self.running = True
         self.command = None
+        self.pending_commands = []  # Sequential command list to avoid race conditions
         self.playback_processes = []
         self.producer_task = None
         self.player_task = None
@@ -261,13 +262,17 @@ class Lue:
             self.is_paused = True
             return False
 
-    def _post_command_sync(self, cmd):
+    def post_command(self, cmd):
+        """Post a command to the reader synchronously and thread-safely."""
+        self.pending_commands.append(cmd)
         if self.loop and self.loop.is_running():
-            asyncio.run_coroutine_threadsafe(self._post_command(cmd), self.loop)
+            self.loop.call_soon_threadsafe(self.command_received_event.set)
+
+    def _post_command_sync(self, cmd):
+        self.post_command(cmd)
 
     async def _post_command(self, cmd):
-        self.command = cmd
-        self.command_received_event.set()
+        self.post_command(cmd)
 
     def _is_position_visible(self, chapter_idx, paragraph_idx, sentence_idx):
         position_key = (chapter_idx, paragraph_idx, sentence_idx)
@@ -1268,8 +1273,13 @@ class Lue:
         while self.running:
             await self.command_received_event.wait()
             self.command_received_event.clear()
-            cmd = self.command
-            self.command = None
+
+            if not self.pending_commands:
+                continue
+            cmd = self.pending_commands.pop(0)
+            if self.pending_commands:
+                self.command_received_event.set()
+
             if not cmd: continue
             
             if cmd == 'toggle_recent_menu':
