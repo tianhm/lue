@@ -245,6 +245,7 @@ class Lue:
         self.resize_scheduled = False
         self.first_sentence_jump = False
         self._initial_load_complete = True
+        self.subtitle_hitboxes = []
 
     async def initialize_tts(self) -> bool:
         """Initializes the selected TTS model."""
@@ -527,6 +528,26 @@ class Lue:
             self._save_extended_progress()
             return True
         
+        return False
+
+    def _is_click_on_subtitle(self, click_x, click_y):
+        """Return True if the click lands on the subtitle (bottom border) row."""
+        if config.UI_MODE != 2:
+            return False
+        _, height = ui.get_terminal_size()
+        # The Rich Panel bottom border row is at y == height (1-based)
+        return click_y == height
+
+    def _handle_subtitle_click(self, click_x, click_y):
+        """
+        Check whether click_x falls within any known subtitle hitbox and, if so,
+        dispatch the corresponding command.  Returns True when a button was hit.
+        """
+        hitboxes = getattr(self, 'subtitle_hitboxes', [])
+        for key, start_x, end_x in hitboxes:
+            if start_x <= click_x <= end_x:
+                self.post_command(key)
+                return True
         return False
 
     def _is_click_in_selection(self, click_pos):

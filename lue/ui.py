@@ -470,6 +470,26 @@ def _apply_selection_highlighting(reader, line, line_index):
     return new_line
 
 
+def _strip_rich_markup(text):
+    """Strip Rich markup tags from a string, returning plain visual text."""
+    return re.sub(r'\[/?[^\]]*\]', '', text)
+
+
+def _compute_subtitle_hitboxes(segments, width):
+    total_plain = sum(len(t) for _, t in segments)
+    inner_width = width - 2
+    start_x = 2 + max(0, (inner_width - total_plain) // 2)
+
+    hitboxes = []
+    cursor = start_x
+    for key, plain in segments:
+        seg_len = len(plain)
+        if key is not None and seg_len > 0:
+            hitboxes.append((key, cursor, cursor + seg_len - 1))
+        cursor += seg_len
+    return hitboxes
+
+
 def get_compact_subtitle(reader, width):
     """Generate a compact subtitle based on terminal width."""
     status_icon = ICONS.PLAYING if not reader.is_paused else ICONS.PAUSED
@@ -541,7 +561,7 @@ def get_compact_subtitle(reader, width):
         playing_color = COLORS.PLAYING_STATUS if not reader.is_paused else COLORS.PAUSED_STATUS
         auto_color = COLORS.AUTO_SCROLL_ENABLED if reader.auto_scroll_enabled else COLORS.AUTO_SCROLL_DISABLED
         
-        return (
+        rich_result = (
             f"[{playing_color}]{status_part}[/{playing_color}] "
             f"[{COLORS.SEPARATORS}]{status_sep}[/{COLORS.SEPARATORS}] "
             f"{auto_text} "
@@ -549,6 +569,36 @@ def get_compact_subtitle(reader, width):
             f"[{COLORS.SEPARATORS}]{auto_sep}[/{COLORS.SEPARATORS}] "
             f"{controls_text}"
         )
+
+        p_status = _strip_rich_markup(status_part)
+        p_status_sep = f" {status_sep} "
+        p_auto_part = auto_part + " "
+        p_auto_sep = f"{auto_sep} "
+
+        segments = [
+            ('pause',                p_status),
+            (None,                   p_status_sep),
+            ('toggle_auto_scroll',   auto_scroll_key),
+            (None,                   ICONS.SEPARATOR),
+            ('move_to_top_visible',  top_visible_key + " "),
+            ('toggle_auto_scroll',   p_auto_part),
+            (None,                   p_auto_sep),
+            ('prev_paragraph',       f"{prev_para_key}{ICONS.SEPARATOR}"),
+            ('prev_sentence',        f"{prev_sent_key}"),
+            (None,                   f" {ICONS.HIGHLIGHT_UP} "),
+            ('next_sentence',        f"{next_sent_key}{ICONS.SEPARATOR}"),
+            ('next_paragraph',       f"{next_para_key}"),
+            (None,                   f" {ICONS.HIGHLIGHT_DOWN} {base_sep} "),
+            ('scroll_up',            f"{scroll_up_key}{ICONS.SEPARATOR}"),
+            ('scroll_down',          f"{scroll_down_key}"),
+            (None,                   f" {ICONS.ROW_NAVIGATION} "),
+            ('scroll_page_up',       f"{page_up_key}{ICONS.SEPARATOR}"),
+            ('scroll_page_down',     f"{page_down_key}"),
+            (None,                   f" {ICONS.PAGE_NAVIGATION} {base_sep} "),
+            ('quit',                 f"{quit_key} {ICONS.QUIT}"),
+        ]
+        reader.subtitle_hitboxes = _compute_subtitle_hitboxes(segments, width)
+        return rich_result
     elif width >= 70:
         separator = ICONS.LINE_SEPARATOR_LONG
         
@@ -571,7 +621,31 @@ def get_compact_subtitle(reader, width):
         playing_color = COLORS.PLAYING_STATUS if not reader.is_paused else COLORS.PAUSED_STATUS
         auto_color = COLORS.AUTO_SCROLL_ENABLED if reader.auto_scroll_enabled else COLORS.AUTO_SCROLL_DISABLED
         
-        return f"[{playing_color}]{icon_status}[/{playing_color}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {auto_text} [{auto_color}]{icon_auto}[/{auto_color}] {controls_text}"
+        rich_result = f"[{playing_color}]{icon_status}[/{playing_color}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {auto_text} [{auto_color}]{icon_auto}[/{auto_color}] {controls_text}"
+        segments = [
+            ('pause',                _strip_rich_markup(icon_status)),
+            (None,                   f" {separator} "),
+            ('toggle_auto_scroll',   auto_scroll_key),
+            (None,                   ICONS.SEPARATOR),
+            ('move_to_top_visible',  top_visible_key + " "),
+            ('toggle_auto_scroll',   icon_auto),
+            (None,                   f" {separator} "),
+            ('prev_paragraph',       f"{prev_para_key}{ICONS.SEPARATOR}"),
+            ('prev_sentence',        f"{prev_sent_key}"),
+            (None,                   f" {ICONS.HIGHLIGHT_UP} "),
+            ('next_sentence',        f"{next_sent_key}{ICONS.SEPARATOR}"),
+            ('next_paragraph',       f"{next_para_key}"),
+            (None,                   f" {ICONS.HIGHLIGHT_DOWN} {separator} "),
+            ('scroll_up',            f"{scroll_up_key}{ICONS.SEPARATOR}"),
+            ('scroll_down',          f"{scroll_down_key}"),
+            (None,                   f" {ICONS.ROW_NAVIGATION} "),
+            ('scroll_page_up',       f"{page_up_key}{ICONS.SEPARATOR}"),
+            ('scroll_page_down',     f"{page_down_key}"),
+            (None,                   f" {ICONS.PAGE_NAVIGATION} {separator} "),
+            ('quit',                 f"{quit_key} {ICONS.QUIT}"),
+        ]
+        reader.subtitle_hitboxes = _compute_subtitle_hitboxes(segments, width)
+        return rich_result
     elif width >= 65:
         separator = ICONS.LINE_SEPARATOR_MEDIUM
         
@@ -594,7 +668,31 @@ def get_compact_subtitle(reader, width):
         playing_color = COLORS.PLAYING_STATUS if not reader.is_paused else COLORS.PAUSED_STATUS
         auto_color = COLORS.AUTO_SCROLL_ENABLED if reader.auto_scroll_enabled else COLORS.AUTO_SCROLL_DISABLED
         
-        return f"[{playing_color}]{icon_status}[/{playing_color}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {auto_text} [{auto_color}]{icon_auto}[/{auto_color}] {controls_text}"
+        rich_result = f"[{playing_color}]{icon_status}[/{playing_color}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {auto_text} [{auto_color}]{icon_auto}[/{auto_color}] {controls_text}"
+        segments = [
+            ('pause',                _strip_rich_markup(icon_status)),
+            (None,                   f" {separator} "),
+            ('toggle_auto_scroll',   auto_scroll_key),
+            (None,                   ICONS.SEPARATOR),
+            ('move_to_top_visible',  top_visible_key + " "),
+            ('toggle_auto_scroll',   icon_auto),
+            (None,                   f" {separator} "),
+            ('prev_paragraph',       f"{prev_para_key}{ICONS.SEPARATOR}"),
+            ('prev_sentence',        f"{prev_sent_key}"),
+            (None,                   f" {ICONS.HIGHLIGHT_UP} "),
+            ('next_sentence',        f"{next_sent_key}{ICONS.SEPARATOR}"),
+            ('next_paragraph',       f"{next_para_key}"),
+            (None,                   f" {ICONS.HIGHLIGHT_DOWN} {separator} "),
+            ('scroll_up',            f"{scroll_up_key}{ICONS.SEPARATOR}"),
+            ('scroll_down',          f"{scroll_down_key}"),
+            (None,                   f" {ICONS.ROW_NAVIGATION} "),
+            ('scroll_page_up',       f"{page_up_key}{ICONS.SEPARATOR}"),
+            ('scroll_page_down',     f"{page_down_key}"),
+            (None,                   f" {ICONS.PAGE_NAVIGATION} {separator} "),
+            ('quit',                 f"{quit_key} {ICONS.QUIT}"),
+        ]
+        reader.subtitle_hitboxes = _compute_subtitle_hitboxes(segments, width)
+        return rich_result
     else:
         separator = ICONS.LINE_SEPARATOR_SHORT
         
@@ -617,7 +715,31 @@ def get_compact_subtitle(reader, width):
         playing_color = COLORS.PLAYING_STATUS if not reader.is_paused else COLORS.PAUSED_STATUS
         auto_color = COLORS.AUTO_SCROLL_ENABLED if reader.auto_scroll_enabled else COLORS.AUTO_SCROLL_DISABLED
         
-        return f"[{playing_color}]{icon_status}[/{playing_color}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {auto_text} [{auto_color}]{icon_auto}[/{auto_color}] {controls_text}"
+        rich_result = f"[{playing_color}]{icon_status}[/{playing_color}] [{COLORS.SEPARATORS}]{separator}[/{COLORS.SEPARATORS}] {auto_text} [{auto_color}]{icon_auto}[/{auto_color}] {controls_text}"
+        segments = [
+            ('pause',                _strip_rich_markup(icon_status)),
+            (None,                   f" {separator} "),
+            ('toggle_auto_scroll',   auto_scroll_key),
+            (None,                   ICONS.SEPARATOR),
+            ('move_to_top_visible',  top_visible_key + " "),
+            ('toggle_auto_scroll',   icon_auto),
+            (None,                   f" {separator} "),
+            ('prev_paragraph',       f"{prev_para_key}{ICONS.SEPARATOR}"),
+            ('prev_sentence',        f"{prev_sent_key}"),
+            (None,                   f" {ICONS.HIGHLIGHT_UP} "),
+            ('next_sentence',        f"{next_sent_key}{ICONS.SEPARATOR}"),
+            ('next_paragraph',       f"{next_para_key}"),
+            (None,                   f" {ICONS.HIGHLIGHT_DOWN} {separator} "),
+            ('scroll_up',            f"{scroll_up_key}{ICONS.SEPARATOR}"),
+            ('scroll_down',          f"{scroll_down_key}"),
+            (None,                   f" {ICONS.ROW_NAVIGATION} "),
+            ('scroll_page_up',       f"{page_up_key}{ICONS.SEPARATOR}"),
+            ('scroll_page_down',     f"{page_down_key}"),
+            (None,                   f" {ICONS.PAGE_NAVIGATION} {separator} "),
+            ('quit',                 f"{quit_key} {ICONS.QUIT}"),
+        ]
+        reader.subtitle_hitboxes = _compute_subtitle_hitboxes(segments, width)
+        return rich_result
 
 def render_recent_books_overlay(reader, width, height):
     """Render the recent books overlay."""

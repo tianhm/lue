@@ -119,6 +119,10 @@ def _process_mouse_sequence(reader, sequence):
                             reader.post_command(('chapter_click', (x_pos, y_pos)))
                             return
 
+                        if reader._is_click_on_subtitle(x_pos, y_pos):
+                            if reader._handle_subtitle_click(x_pos, y_pos):
+                                return
+
                         if reader._is_click_on_progress_bar(x_pos, y_pos):
                             if reader._handle_progress_bar_click(x_pos, y_pos):
                                 return
